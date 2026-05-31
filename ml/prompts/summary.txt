@@ -1,0 +1,10 @@
+Berikut adalah transkrip rapat:
+
+{transcript}
+
+Buat ringkasan rapat di atas dalam Bahasa Indonesia. Sertakan:
+1. Topik utama yang dibahas
+2. Keputusan-keputusan penting yang diambil
+3. Poin-poin kunci
+
+Format output sebagai paragraf ringkas (maksimal 200 kata).
