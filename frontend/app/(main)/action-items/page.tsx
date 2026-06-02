@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  //CheckSquare,
   Square,
   Search,
   Users,
@@ -15,71 +14,69 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface ActionItem {
-  id: number;
-  task: string;
-  meetingTitle: string;
-  assignee: string;
-  dueDate: string; // Format YYYY-MM-DD
-  status: "Aktif" | "Terlambat" | "Selesai";
-}
+import { useMyActionItems, useUpdateActionItem } from "@/hooks/useActionItems";
 
 export default function ActionItemsPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-
-  const [tasks, setTasks] = useState<ActionItem[]>([
-    { id: 1, task: "Selesaikan responsive design", meetingTitle: "Weekly Standup", assignee: "Jane Smith", dueDate: "2026-05-20", status: "Terlambat" },
-    { id: 2, task: "Setup testing automation", meetingTitle: "Weekly Standup", assignee: "John Doe", dueDate: "2026-05-25", status: "Terlambat" },
-    { id: 3, task: "Review dokumentasi API", meetingTitle: "Technical Sync", assignee: "Alice Brown", dueDate: "2026-06-15", status: "Aktif" },
-    { id: 4, task: "Slide materi seminar", meetingTitle: "Koordinasi Seminar", assignee: "John Doe", dueDate: "2026-06-05", status: "Selesai" },
-  ]);
-
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<"Semua" | "Aktif" | "Selesai">("Semua");
 
-  // Mencegah Hydration Error akibat format tanggal lokal
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
-  const handleToggleComplete = (id: number) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task => {
-        if (task.id !== id) return task;
-        if (task.status === "Selesai") {
-          const isOverdue = new Date(task.dueDate) < new Date();
-          return { ...task, status: (isOverdue ? "Terlambat" : "Aktif") as ActionItem["status"] };
-        }
-        return { ...task, status: "Selesai" as ActionItem["status"] };
-      })
-    );
+  const { data, isLoading, isError } = useMyActionItems();
+  const { mutate: updateActionItem } = useUpdateActionItem();
+
+  const rawItems = data?.items ?? [];
+
+  // Map API data → format UI
+  const tasks = rawItems.map((item: any) => {
+    const isOverdue = item.due_date && new Date(item.due_date) < new Date();
+    const status =
+      item.status === "done" ? "Selesai" :
+      isOverdue ? "Terlambat" : "Aktif";
+    return {
+      id: item.id,
+      task: item.task,
+      meetingTitle: item.meeting?.title ?? "–",
+      assignee: "Saya",
+      dueDate: item.due_date ?? "2099-12-31",
+      status,
+    };
+  });
+
+  const handleToggleComplete = (id: string) => {
+    const item = tasks.find((t: any) => t.id === id);
+    if (!item) return;
+    const newStatus = item.status === "Selesai" ? "open" : "done";
+    updateActionItem({ id, status: newStatus });
   };
 
   const formatDateDisplay = (dateString: string) => {
     if (!mounted) return dateString;
-    return new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    return new Date(dateString).toLocaleDateString("id-ID", {
+      day: "numeric", month: "short", year: "numeric"
+    });
   };
 
   const stats = useMemo(() => ({
     total: tasks.length,
-    aktif: tasks.filter(t => t.status !== "Selesai").length,
-    selesai: tasks.filter(t => t.status === "Selesai").length
+    aktif: tasks.filter((t: any) => t.status !== "Selesai").length,
+    selesai: tasks.filter((t: any) => t.status === "Selesai").length,
   }), [tasks]);
 
   const filteredTasks = useMemo(() => {
-    const filtered = tasks.filter(task => {
-      const matchesSearch = task.task.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const filtered = tasks.filter((task: any) => {
+      const matchesSearch =
+        task.task.toLowerCase().includes(searchQuery.toLowerCase()) ||
         task.meetingTitle.toLowerCase().includes(searchQuery.toLowerCase());
-      if (activeFilter === "Aktif") return matchesSearch && (task.status === "Aktif" || task.status === "Terlambat");
+      if (activeFilter === "Aktif") return matchesSearch && task.status !== "Selesai";
       if (activeFilter === "Selesai") return matchesSearch && task.status === "Selesai";
       return matchesSearch;
     });
-
-    return filtered.sort((a, b) => {
-      const order = { "Terlambat": 0, "Aktif": 1, "Selesai": 2 };
-      return order[a.status] - order[b.status];
+    return filtered.sort((a: any, b: any) => {
+      const order: Record<string, number> = { Terlambat: 0, Aktif: 1, Selesai: 2 };
+      return (order[a.status] ?? 1) - (order[b.status] ?? 1);
     });
   }, [tasks, searchQuery, activeFilter]);
 
@@ -87,7 +84,6 @@ export default function ActionItemsPage() {
     <main className="bg-[#0A051B] min-h-screen text-slate-100 pb-16 pt-8">
       <div className="max-w-5xl mx-auto px-6 space-y-8">
 
-        {/* Tombol Kembali */}
         <button
           onClick={() => router.back()}
           className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition text-xs font-medium mb-4"
@@ -96,7 +92,6 @@ export default function ActionItemsPage() {
           Kembali ke Dashboard
         </button>
 
-        {/* Header */}
         <div className="space-y-1">
           <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
             <ClipboardList className="text-[#7E61F2]" size={26} /> Tugas Saya
@@ -122,12 +117,18 @@ export default function ActionItemsPage() {
           ))}
         </div>
 
-        {/* Konten Utama */}
+        {/* Konten */}
         <div className="bg-[#130E29]/40 rounded-2xl p-6 border border-white/5">
           <div className="flex flex-col md:flex-row gap-4 justify-between mb-6">
             <div className="flex bg-[#0A051B] p-1 rounded-xl border border-white/5">
               {(["Semua", "Aktif", "Selesai"] as const).map((f) => (
-                <button key={f} onClick={() => setActiveFilter(f)} className={cn("px-6 py-2 rounded-lg text-xs font-bold transition", activeFilter === f ? "bg-[#7E61F2] text-white" : "text-slate-400 hover:text-white")}>
+                <button
+                  key={f}
+                  onClick={() => setActiveFilter(f)}
+                  className={cn("px-6 py-2 rounded-lg text-xs font-bold transition",
+                    activeFilter === f ? "bg-[#7E61F2] text-white" : "text-slate-400 hover:text-white"
+                  )}
+                >
                   {f}
                 </button>
               ))}
@@ -143,10 +144,15 @@ export default function ActionItemsPage() {
             </div>
           </div>
 
-          {/* List Item Rapat */}
           <div className="space-y-3">
-            {filteredTasks.length > 0 ? (
-              filteredTasks.map((item) => (
+            {isLoading ? (
+              [...Array(3)].map((_, i) => (
+                <div key={i} className="h-16 rounded-xl bg-white/5 animate-pulse" />
+              ))
+            ) : isError ? (
+              <p className="text-center text-rose-400 py-10 text-sm">Gagal memuat tugas. Pastikan backend sudah berjalan.</p>
+            ) : filteredTasks.length > 0 ? (
+              filteredTasks.map((item: any) => (
                 <div
                   key={item.id}
                   onClick={() => handleToggleComplete(item.id)}

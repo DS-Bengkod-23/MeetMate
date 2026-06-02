@@ -17,44 +17,35 @@ export default function LoginPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // 1. Ekstrak nama otomatis dari email input (Contoh: dimas.pratama@mail.com -> Dimas Pratama)
-    const emailPrefix = formData.email.split("@")[0];
-    const generatedName = emailPrefix
-      .split(/[._-]/)
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+    try {
+      const data = await import("@/lib/api").then(m => m.loginUser(formData));
 
-    // 2. Siapkan object user session baru
-    const userSession = {
-      name: generatedName || "User MeetMate",
-      email: formData.email,
-      role: "Team Member",
-      department: "Product Development",
-      joinDate: "Mei 2026",
-      bio: "Berhasil login ke MeetMate menggunakan akun pribadi."
-    };
-
-    // 3. Simpan ke localStorage agar dibaca oleh layout & halaman profil
-    localStorage.setItem("user_profile", JSON.stringify(userSession));
-
-    // 4. Picu event agar layout navbar langsung ter-update seketika
-    if (typeof window !== "undefined") {
+      // Simpan profil user dari response ke localStorage untuk navbar
+      const userSession = {
+        name: data.name || formData.email.split("@")[0],
+        email: formData.email,
+        role: "Team Member",
+        department: "Product Development",
+        joinDate: new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" }),
+        bio: "",
+      };
+      localStorage.setItem("user_profile", JSON.stringify(userSession));
       window.dispatchEvent(new Event("profileUpdate"));
-    }
 
-    // Toast sukses kosmetik sebelum animasi flying dipicu
-    toast.success("Login berhasil! Menyiapkan dashboard Anda...");
-
-    setTimeout(() => {
-      setIsFlying(true);
+      toast.success("Login berhasil! Menyiapkan dashboard Anda...");
       setTimeout(() => {
-        router.push("/meetings");
-      }, 1000);
-    }, 600);
+        setIsFlying(true);
+        setTimeout(() => router.push("/meetings"), 1000);
+      }, 600);
+    } catch (err: any) {
+      const message = err?.response?.data?.detail || "Email atau password salah.";
+      toast.error(message);
+      setIsLoading(false);
+    }
   };
 
   return (
