@@ -6,6 +6,8 @@ import { ArrowLeft, Type, MapPin, Calendar, FileText, X, Plus } from "lucide-rea
 import Link from "next/link";
 import { toast } from "sonner";
 import { useMeeting, useUpdateMeeting } from "@/hooks/useMeeting";
+import { FormError } from "@/components/ui/form-error";
+import { extractApiError } from "@/lib/utils";
 
 export default function EditMeetingPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +24,7 @@ export default function EditMeetingPage() {
   });
   const [participants, setParticipants] = useState<string[]>([]);
   const [emailInput, setEmailInput] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!meeting) return;
@@ -60,6 +63,7 @@ export default function EditMeetingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     try {
       await updateMeeting({
         title: formData.title,
@@ -72,8 +76,7 @@ export default function EditMeetingPage() {
       toast.success("Rapat berhasil diperbarui!");
       router.push(`/meetings/${id}`);
     } catch (err: any) {
-      const message = err?.response?.data?.detail || "Gagal memperbarui rapat. Coba lagi.";
-      toast.error(message);
+      setFormError(extractApiError(err, "Gagal memperbarui rapat. Coba lagi."));
     }
   };
 
@@ -251,6 +254,8 @@ export default function EditMeetingPage() {
               )}
             </div>
           </div>
+
+          <FormError message={formError} />
 
           {/* FOOTER ACTIONS */}
           <div className="border-t border-purple-950/40 pt-6 flex flex-col sm:flex-row items-center justify-end gap-3">
