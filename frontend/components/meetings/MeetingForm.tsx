@@ -4,9 +4,11 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, Plus, Type, MapPin, Calendar, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { useCreateMeeting } from "@/hooks/useMeetings";
 
 export default function MeetingForm() {
   const router = useRouter();
+  const { mutateAsync: createMeeting, isPending } = useCreateMeeting();
   const [formData, setFormData] = useState({
     title: "",
     location: "",
@@ -35,39 +37,24 @@ export default function MeetingForm() {
     setParticipants(participants.filter((p) => p !== email));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const inputDate = new Date(formData.dateTime);
-    const now = new Date();
-    const status = inputDate < now ? ("Selesai" as const) : ("Dijadwalkan" as const);
-
-    const formattedDate =
-      inputDate.toLocaleDateString("id-ID", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }) + ` pukul ${inputDate.getHours()}.${inputDate.getMinutes().toString().padStart(2, "0")}`;
-
-    const newMeeting = {
-      id: Date.now().toString(),
-      title: formData.title,
-      location: formData.location,
-      date: formattedDate,
-      status: status,
-      totalParticipants: participants.length + 1, // +1 untuk pemilik rapat (John)
-      attendedParticipants: 0,
-      hasTranscript: false,
-      // SIMPAN EMAILS DI SINI AGAR DINAMIS
-      invitedEmails: ["john.doe@company.com", ...participants]
-    };
-
-    const existingMeetings = JSON.parse(localStorage.getItem("meetings") || "[]");
-    localStorage.setItem("meetings", JSON.stringify([...existingMeetings, newMeeting]));
-
-    toast.success("Rapat berhasil dijadwalkan!");
-    setTimeout(() => router.push("/meetings"), 1000);
+    try {
+      const result = await createMeeting({
+        title: formData.title,
+        scheduled_at: new Date(formData.dateTime).toISOString(),
+        location: formData.location,
+        description: formData.description,
+        agenda_text: formData.agenda,
+        participant_emails: participants,
+      });
+      toast.success("Rapat berhasil dijadwalkan!");
+      router.push(`/meetings/${result.id}`);
+    } catch (err: any) {
+      const message = err?.response?.data?.detail || "Gagal membuat rapat. Coba lagi.";
+      toast.error(message);
+    }
   };
 
 
@@ -216,9 +203,10 @@ export default function MeetingForm() {
         </button>
         <button
           type="submit"
-          className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-[#7E61F2] to-[#6344E3] hover:from-[#8F75FA] hover:to-[#7254F5] text-white font-bold text-sm shadow-[0_4px_20px_rgba(126,97,242,0.3)] hover:shadow-[0_4px_25px_rgba(126,97,242,0.5)] transition-all duration-300"
+          disabled={isPending}
+          className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-[#7E61F2] to-[#6344E3] hover:from-[#8F75FA] hover:to-[#7254F5] text-white font-bold text-sm shadow-[0_4px_20px_rgba(126,97,242,0.3)] hover:shadow-[0_4px_25px_rgba(126,97,242,0.5)] transition-all duration-300 disabled:opacity-50"
         >
-          Jadwalkan Pertemuan
+          {isPending ? "Menyimpan..." : "Jadwalkan Pertemuan"}
         </button>
       </div>
     </form>

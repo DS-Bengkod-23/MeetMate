@@ -43,7 +43,7 @@ export default function RegisterPage() {
     else setPasswordStrength({ score: 3, label: "Strong", color: "bg-emerald-500" });
   }, [formData.password]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordStrength.score === 1) {
       toast.error("Password terlalu lemah! Gunakan minimal 8 karakter.");
@@ -56,27 +56,20 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
-    // PENYESUAIAN: Simpan data registrasi ke localStorage agar tersinkronisasi
-    const userSession = {
-      name: formData.name,
-      email: formData.email,
-      role: "Team Member",
-      department: "Product Development",
-      joinDate: "Mei 2026",
-      bio: "Akun baru MeetMate yang berhasil terdaftar."
-    };
-    localStorage.setItem("user_profile", JSON.stringify(userSession));
-
-    // Memicu event update profil jika layout membutuhkannya seketika
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("profileUpdate"));
+    try {
+      await import("@/lib/api").then(m =>
+        m.registerUser({ name: formData.name, email: formData.email, password: formData.password })
+      );
+      toast.success("Pendaftaran berhasil! Silakan login.");
+      setTimeout(() => {
+        setIsFlying(true);
+        setTimeout(() => router.push("/login"), 1000);
+      }, 600);
+    } catch (err: any) {
+      const message = err?.response?.data?.detail || "Pendaftaran gagal. Coba lagi.";
+      toast.error(message);
+      setIsLoading(false);
     }
-
-    toast.success("Pendaftaran berhasil! Mengalihkan ke halaman login...");
-    setTimeout(() => {
-      setIsFlying(true);
-      setTimeout(() => router.push("/login"), 1000);
-    }, 600);
   };
 
   return (

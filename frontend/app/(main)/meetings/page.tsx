@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, Filter, Plus, ChevronDown } from "lucide-react";
+import { Search, Filter, Plus, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import MeetingCard from "@/components/meetings/MeetingCard";
 import {
   DropdownMenu,
@@ -10,41 +10,83 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useMeetings, useSearchMeetings } from "@/hooks/useMeetings";
+import type { MeetingsParams } from "@/lib/api";
 
-const INITIAL_MEETINGS = [
-  {
-    id: "1",
-    title: "Weekly Standup Meeting - Sprint 24",
-    status: "Dijadwalkan" as const,
-    date: "Jumat, 20 Desember 2024 pukul 16.00",
-    location: "Ruang Meeting Lantai 3",
-    totalParticipants: 8,
-    attendedParticipants: 0,
-    hasTranscript: false,
-  },
-];
+const STATUS_MAP: Record<string, "Dijadwalkan" | "Selesai" | "Dibatalkan"> = {
+  scheduled: "Dijadwalkan",
+  completed: "Selesai",
+  cancelled: "Dibatalkan",
+};
+
+const LIMIT = 9;
+
+function formatDate(isoString: string) {
+  return new Date(isoString).toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default function MeetingsDashboard() {
-  const [meetings, setMeetings] = useState(INITIAL_MEETINGS);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("Semua Status");
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [userName, setUserName] = useState("Pengguna");
+  const [page, setPage] = useState(1);
 
+  // Debounce search 300ms
   useEffect(() => {
-    const savedMeetings = JSON.parse(localStorage.getItem("meetings") || "[]");
-    setMeetings([...INITIAL_MEETINGS, ...savedMeetings]);
-    setIsLoaded(true);
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+      setPage(1); // reset ke halaman 1 saat search berubah
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Reset halaman saat filter status berubah
+  useEffect(() => { setPage(1); }, [statusFilter]);
+
+  // Ambil nama dari localStorage untuk sapaan
+  useEffect(() => {
+    const profile = JSON.parse(localStorage.getItem("user_profile") || "{}");
+    if (profile.name) setUserName(profile.name.split(" ")[0]);
   }, []);
 
-  const filteredMeetings = meetings.filter((meeting) => {
-    const matchesSearch =
-      meeting.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      meeting.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = statusFilter === "Semua Status" || meeting.status === statusFilter;
-    return matchesSearch && matchesFilter;
-  });
+  const apiStatus = statusFilter === "Semua Status" ? undefined : (
+    statusFilter === "Dijadwalkan" ? "scheduled" :
+    statusFilter === "Selesai" ? "completed" : "cancelled"
+  ) as MeetingsParams["status"];
 
-  if (!isLoaded) return null;
+  const { data: meetingsData, isLoading, isError } = useMeetings(
+    debouncedQuery ? undefined : { status: apiStatus, page, limit: LIMIT }
+  );
+  const { data: searchData, isLoading: isSearching } = useSearchMeetings(debouncedQuery);
+
+  const rawItems = debouncedQuery
+    ? (searchData?.items ?? [])
+    : (meetingsData?.items ?? []);
+
+  const total = debouncedQuery ? (searchData?.total ?? 0) : (meetingsData?.total ?? 0);
+  const totalPages = Math.ceil(total / LIMIT);
+
+  const meetings = rawItems.map((m: any) => ({
+    id: m.id,
+    title: m.title,
+    status: STATUS_MAP[m.status] ?? "Dijadwalkan",
+    date: formatDate(m.scheduled_at),
+    location: m.location ?? "–",
+    totalParticipants: m.participant_count ?? 0,
+    attendedParticipants: m.attendance_count ?? 0,
+    hasTranscript: m.processing_status === "completed",
+    hasRecording: m.has_recording ?? false,
+  }));
+
+  const loading = isLoading || isSearching;
 
   return (
     <div className="w-full min-h-screen bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-stops))] from-[#0b0a26] via-[#08061a] to-[#050412] text-white font-sans relative overflow-hidden pb-12">
@@ -55,7 +97,7 @@ export default function MeetingsDashboard() {
         {/* HEADER SECTION */}
         <div className="space-y-2">
           <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-purple-400">
-            Selamat datang, John!
+            Selamat datang, {userName}!
           </h1>
           <p className="text-sm text-slate-400">Kelola dan tinjau riwayat rapat pintar Anda dengan mudah.</p>
         </div>
@@ -103,16 +145,71 @@ export default function MeetingsDashboard() {
           </div>
         </div>
 
-        {/* LIST CARDS GRID */}
-        {filteredMeetings.length > 0 ? (
+        {/* LIST CARDS */}
+        {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredMeetings.map((meeting) => (
-              <MeetingCard key={meeting.id} {...meeting} />
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-48 rounded-2xl bg-white/5 animate-pulse" />
             ))}
           </div>
+        ) : isError ? (
+          <div className="text-center py-20 bg-[#120e2e]/20 rounded-2xl border border-dashed border-red-900/30">
+            <p className="text-rose-400 text-sm">Gagal memuat data rapat. Pastikan backend sudah berjalan.</p>
+          </div>
+        ) : meetings.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {meetings.map((meeting: any) => (
+                <MeetingCard key={meeting.id} {...meeting} />
+              ))}
+            </div>
+
+            {/* PAGINATION — hanya tampil kalau tidak sedang search dan ada lebih dari 1 halaman */}
+            {!debouncedQuery && totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 pt-4">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-2 rounded-xl bg-[#120e2e]/60 border border-purple-500/10 text-slate-400 hover:text-white hover:border-purple-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`w-8 h-8 rounded-lg text-xs font-bold transition ${
+                        p === page
+                          ? "bg-[#7E61F2] text-white"
+                          : "text-slate-400 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="p-2 rounded-xl bg-[#120e2e]/60 border border-purple-500/10 text-slate-400 hover:text-white hover:border-purple-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                >
+                  <ChevronRight size={16} />
+                </button>
+
+                <span className="text-xs text-slate-500 ml-2">
+                  {total} rapat total
+                </span>
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-20 bg-[#120e2e]/20 rounded-2xl border border-dashed border-purple-950/30">
-            <p className="text-slate-500 text-sm">Tidak ada jadwal rapat yang cocok dengan pencarian Anda.</p>
+            <p className="text-slate-500 text-sm">
+              {debouncedQuery ? "Tidak ada hasil pencarian." : "Belum ada rapat. Buat rapat baru!"}
+            </p>
           </div>
         )}
       </main>

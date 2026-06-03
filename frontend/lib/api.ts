@@ -7,43 +7,179 @@ const api = axios.create({
   },
 });
 
+// Attach JWT token ke setiap request
+api.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
+// Jika 401, hapus token dan redirect ke login
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && typeof window !== "undefined") {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user_profile");
+      document.cookie = "access_token=; path=/; max-age=0";
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
 // ==========================================
-// 1. ENDPOINT AUTH (Sesuai auth.py)
+// AUTH
 // ==========================================
-export const loginUser = async (credentials: any) => {
-  // const response = await api.post("/auth/login", credentials);
-  // return response.data;
-  console.log("Mock Login dengan:", credentials);
+
+export const loginUser = async (credentials: { email: string; password: string }) => {
+  const response = await api.post("/auth/login", credentials);
+  const { access_token } = response.data;
+  localStorage.setItem("access_token", access_token);
+  // Set cookie agar middleware bisa baca
+  document.cookie = `access_token=${access_token}; path=/; max-age=${7 * 24 * 60 * 60}`;
+  // TODO: aktifkan setelah backend tambahkan field "user" ke login response
+  // if (response.data.user) {
+  //   localStorage.setItem("user_profile", JSON.stringify(response.data.user));
+  // }
+  return response.data;
+};
+
+export const registerUser = async (data: { name: string; email: string; password: string }) => {
+  const response = await api.post("/auth/register", data);
+  return response.data;
+};
+
+export const logoutUser = () => {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("user_profile");
+  document.cookie = "access_token=; path=/; max-age=0";
+  window.location.href = "/login";
 };
 
 // ==========================================
-// 2. ENDPOINT MEETINGS (Sesuai meetings.py)
+// MEETINGS
 // ==========================================
-export const getMeetings = async () => {
-  console.log("Mengambil data rapat statis...");
-  return [
-    { id: "1", title: "Sync Up NLP Team", status: "Dijadwalkan", date: "2026-06-01" },
-    { id: "2", title: "Review UI/UX MeetMate", status: "Selesai", date: "2026-05-30" }
-  ];
+
+export interface MeetingsParams {
+  page?: number;
+  limit?: number;
+  status?: "scheduled" | "completed" | "cancelled";
+}
+
+export const getMeetings = async (params?: MeetingsParams) => {
+  const response = await api.get("/meetings", { params });
+  return response.data;
 };
 
-export const createMeeting = async (meetingData: any) => {
-  console.log("Membuat rapat baru:", meetingData);
-  return { success: true };
+export const getMeeting = async (id: string) => {
+  const response = await api.get(`/meetings/${id}`);
+  return response.data;
+};
+
+export const createMeeting = async (data: {
+  title: string;
+  scheduled_at: string;
+  location?: string;
+  description?: string;
+  agenda_text?: string;
+  participant_emails: string[];
+}) => {
+  const response = await api.post("/meetings", data);
+  return response.data;
+};
+
+export const updateMeeting = async (
+  id: string,
+  data: {
+    title?: string;
+    scheduled_at?: string;
+    location?: string;
+    description?: string;
+    agenda_text?: string;
+  }
+) => {
+  const response = await api.patch(`/meetings/${id}`, data);
+  return response.data;
+};
+
+export const deleteMeeting = async (id: string) => {
+  await api.delete(`/meetings/${id}`);
+};
+
+export const searchMeetings = async (q: string, params?: { page?: number; limit?: number }) => {
+  const response = await api.get("/meetings/search", { params: { q, ...params } });
+  return response.data;
 };
 
 // ==========================================
-// 3. ENDPOINT RECORDINGS (Sesuai recordings.py)
+// RECORDINGS
 // ==========================================
+
 export const uploadRecording = async (meetingId: string, formData: FormData) => {
-  console.log(`Mengupload rekaman untuk meeting ${meetingId}`);
+  const response = await api.post(`/meetings/${meetingId}/recording`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
+export const getRecordingStatus = async (meetingId: string) => {
+  const response = await api.get(`/meetings/${meetingId}/recording/status`);
+  return response.data;
+};
+
+export const deleteRecording = async (meetingId: string) => {
+  await api.delete(`/meetings/${meetingId}/recording`);
 };
 
 // ==========================================
-// 4. ENDPOINT CHECK-IN (Sesuai checkin.py)
+// CHECK-IN (Public, No Auth)
 // ==========================================
-export const submitCheckIn = async (token: string, attendanceData: any) => {
-  console.log(`Submit absensi token: ${token}`, attendanceData);
+
+export const getCheckin = async (token: string) => {
+  const response = await api.get(`/check-in/${token}`);
+  return response.data;
+};
+
+export const confirmCheckin = async (token: string) => {
+  const response = await api.post(`/check-in/${token}/confirm`);
+  return response.data;
+};
+
+// ==========================================
+// ATTENDANCE
+// ==========================================
+
+export const updateAttendance = async (
+  meetingId: string,
+  participantId: string,
+  status: "pending" | "hadir" | "tidak_hadir"
+) => {
+  const response = await api.patch(
+    `/meetings/${meetingId}/participants/${participantId}/attendance`,
+    { status }
+  );
+  return response.data;
+};
+
+// ==========================================
+// ACTION ITEMS
+// ==========================================
+
+export const getMyActionItems = async (status?: "open" | "done") => {
+  const response = await api.get("/me/action-items", {
+    params: status ? { status } : undefined,
+  });
+  return response.data;
+};
+
+export const updateActionItem = async (id: string, status: "open" | "done") => {
+  const response = await api.patch(`/action-items/${id}`, { status });
+  return response.data;
 };
 
 export default api;

@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
+import Providers from "./providers";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -32,8 +33,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", inter.variable)}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#070412]`}>
-        <Toaster theme="dark" position="top-center" richColors closeButton />
-        {children}
+        <Providers>
+          <Toaster theme="dark" position="top-center" richColors closeButton />
+          {children}
+        </Providers>
       </body>
     </html>
   );
