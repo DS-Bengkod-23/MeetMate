@@ -33,4 +33,9 @@ def login(body: UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email atau password salah",
         )
-    return TokenResponse(access_token=create_access_token({"sub": str(user.id)}))
+    return TokenResponse(
+        access_token=create_access_token({"sub": str(user.id)}),
+        id=user.id,
+        name=user.name,
+        email=user.email,
+    )

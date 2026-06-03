@@ -24,3 +24,6 @@ class UserResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    id: UUID
+    name: str
+    email: str
