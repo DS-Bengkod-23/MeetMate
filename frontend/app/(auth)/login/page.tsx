@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Sparkles, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { FormError } from "@/components/ui/form-error";
+import { extractApiError } from "@/lib/utils";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,6 +14,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isFlying, setIsFlying] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -20,11 +23,11 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setFormError(null);
 
     try {
       const data = await import("@/lib/api").then(m => m.loginUser(formData));
 
-      // Simpan profil user dari response ke localStorage untuk navbar
       const userSession = {
         name: data.name || formData.email.split("@")[0],
         email: formData.email,
@@ -42,8 +45,7 @@ export default function LoginPage() {
         setTimeout(() => router.push("/meetings"), 1000);
       }, 600);
     } catch (err: any) {
-      const message = err?.response?.data?.detail || "Email atau password salah.";
-      toast.error(message);
+      setFormError(extractApiError(err, "Email atau password salah."));
       setIsLoading(false);
     }
   };
@@ -147,6 +149,8 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
+
+              <FormError message={formError} />
 
               <button
                 type="submit"
