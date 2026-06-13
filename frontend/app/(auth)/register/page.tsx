@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ShieldCheck, User, Mail, Lock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { FormError } from "@/components/ui/form-error";
+import { extractApiError } from "@/lib/utils";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -19,6 +21,7 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isFlying, setIsFlying] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: "Belum Diisi", color: "bg-slate-700" });
 
@@ -45,12 +48,14 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+
     if (passwordStrength.score === 1) {
-      toast.error("Password terlalu lemah! Gunakan minimal 8 karakter.");
+      setFormError("Password terlalu lemah! Gunakan minimal 8 karakter dengan angka atau huruf besar.");
       return;
     }
     if (formData.password !== formData.confirmPassword) {
-      toast.error("Konfirmasi password tidak cocok!");
+      setFormError("Konfirmasi password tidak cocok!");
       return;
     }
 
@@ -66,8 +71,7 @@ export default function RegisterPage() {
         setTimeout(() => router.push("/login"), 1000);
       }, 600);
     } catch (err: any) {
-      const message = err?.response?.data?.detail || "Pendaftaran gagal. Coba lagi.";
-      toast.error(message);
+      setFormError(extractApiError(err, "Pendaftaran gagal. Coba lagi."));
       setIsLoading(false);
     }
   };
@@ -241,6 +245,8 @@ export default function RegisterPage() {
                   <p className="text-[10px] text-rose-400 font-medium tracking-wide">Sandi tidak cocok!</p>
                 )}
               </div>
+
+              <FormError message={formError} />
 
               <button
                 type="submit"

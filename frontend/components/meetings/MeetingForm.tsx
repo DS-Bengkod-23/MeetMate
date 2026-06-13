@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import { X, Plus, Type, MapPin, Calendar, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useCreateMeeting } from "@/hooks/useMeetings";
+import { FormError } from "@/components/ui/form-error";
+import { extractApiError } from "@/lib/utils";
 
 export default function MeetingForm() {
   const router = useRouter();
   const { mutateAsync: createMeeting, isPending } = useCreateMeeting();
+  const [formError, setFormError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     location: "",
@@ -39,6 +42,7 @@ export default function MeetingForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
 
     try {
       const result = await createMeeting({
@@ -52,8 +56,7 @@ export default function MeetingForm() {
       toast.success("Rapat berhasil dijadwalkan!");
       router.push(`/meetings/${result.id}`);
     } catch (err: any) {
-      const message = err?.response?.data?.detail || "Gagal membuat rapat. Coba lagi.";
-      toast.error(message);
+      setFormError(extractApiError(err, "Gagal membuat rapat. Coba lagi."));
     }
   };
 
@@ -191,6 +194,8 @@ export default function MeetingForm() {
           )}
         </div>
       </div>
+
+      <FormError message={formError} />
 
       {/* FOOTER ACTIONS BUTTON */}
       <div className="border-t border-purple-950/40 pt-6 flex flex-col sm:flex-row items-center justify-end gap-3">
