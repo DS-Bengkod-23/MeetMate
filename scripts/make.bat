@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0.."
 
 if "%1" == "up" (
     docker compose up -d

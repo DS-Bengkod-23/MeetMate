@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from typing import List, Optional, Any
 from datetime import datetime
 from uuid import UUID
+from app.schemas.recording import RecordingResponse
 
 
 class MeetingCreate(BaseModel):
@@ -116,7 +117,7 @@ class MeetingDetail(BaseModel):
     status: str
     organizer: OrganizerResponse
     participants: List[ParticipantResponse]
-    recording: Optional[Any] = None
+    recording: Optional[RecordingResponse] = None
     processing_status: Optional[str] = None
     transcript: Optional[Any] = None
     summary: Optional[Any] = None
@@ -136,6 +137,27 @@ class MeetingDetail(BaseModel):
         if processing_status and hasattr(processing_status, 'value'):
             processing_status = processing_status.value
 
+        transcript = None
+        if getattr(data, "transcript", None):
+            t = data.transcript
+            transcript = {"id": str(t.id), "segments": t.segments}
+
+        summary = None
+        if getattr(data, "summary", None):
+            s = data.summary
+            summary = {"id": str(s.id), "tldr": s.tldr, "decisions": s.decisions, "topics": s.topics}
+
+        action_items = [
+            {
+                "id": str(ai.id),
+                "task": ai.task,
+                "assignee_participant_id": str(ai.assignee_participant_id) if ai.assignee_participant_id else None,
+                "due_date": ai.due_date.isoformat() if ai.due_date else None,
+                "status": ai.status.value if hasattr(ai.status, "value") else ai.status,
+            }
+            for ai in (getattr(data, "action_items", None) or [])
+        ]
+
         return {
             "id": data.id,
             "title": data.title,
@@ -148,7 +170,7 @@ class MeetingDetail(BaseModel):
             "participants": data.participants,
             "recording": data.recording,
             "processing_status": processing_status,
-            "transcript": data.transcript,
-            "summary": data.summary,
-            "action_items": data.action_items,
+            "transcript": transcript,
+            "summary": summary,
+            "action_items": action_items,
         }

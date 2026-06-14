@@ -176,13 +176,13 @@ uvicorn app.main:app --reload --port 8000
 
 *Windows (CMD / Anaconda Prompt):*
 ```cmd
-set PYTHONPATH=<path-ke-root>\backend;<path-ke-root>
-celery -A app.worker worker --loglevel=info
+scripts\start-worker.bat
 ```
 
 *Mac / Linux:*
 ```bash
-PYTHONPATH=./backend:. celery -A app.worker worker --loglevel=info
+chmod +x scripts/start-worker.sh   # sekali saja
+./scripts/start-worker.sh
 ```
 
 **4. Jalankan Frontend** (terminal baru, dari folder `frontend/`)
