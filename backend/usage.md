@@ -36,7 +36,7 @@ Untuk dev lokal, nilai default di `.env.example` sudah langsung bisa dipakai tan
 
 Dari **root repo** (`MeetMate/Aplikasi/`):
 ```bash
-docker compose up -d
+docker compose up -d postgres redis minio mailhog
 ```
 
 Ini menjalankan:
@@ -94,9 +94,17 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 **Terminal 3 — Celery worker** (dibutuhkan untuk proses recording):
+
+*Cara paling mudah — dari root project:*
+```cmd
+scripts\start-worker.bat   # Windows
+./scripts/start-worker.sh  # Mac/Linux
+```
+
+*Atau manual dari folder `backend/`:*
 ```bash
-cd backend
-python -m celery -A app.worker worker --loglevel=info
+# Tambah --pool=solo di Windows karena tidak support fork()
+python -m celery -A app.worker worker --loglevel=info --pool=solo
 ```
 
 > `celery` dan `alembic` mungkin tidak ada di PATH secara langsung. Selalu pakai `python -m celery` dan `python -m alembic` untuk menghindari masalah ini.
@@ -258,14 +266,17 @@ python -m alembic upgrade head
 ## Ringkasan Perintah Harian
 
 ```bash
-# 1. start infra (sekali per sesi)
-docker compose up -d
+# 1. start infra saja (postgres, redis, minio, mailhog)
+docker compose up -d postgres redis minio mailhog
 
 # 2. API server
 cd backend && uvicorn app.main:app --reload --port 8000
 
-# 3. Celery worker (terminal terpisah)
-cd backend && python -m celery -A app.worker worker --loglevel=info
+# 3. Celery worker (terminal terpisah, dari root project)
+# Windows:
+scripts\start-worker.bat
+# Mac/Linux:
+./scripts/start-worker.sh
 
 # 4. cek semua OK
 curl http://localhost:8000/health
