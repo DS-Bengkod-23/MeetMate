@@ -19,13 +19,13 @@ interface TranscriptViewProps {
 const getSpeakerStyle = (speakerId: string) => {
   switch (speakerId) {
     case "SPEAKER_00":
-      return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+      return "bg-blue-50 text-blue-700 border-blue-200";
     case "SPEAKER_01":
-      return "bg-purple-500/10 text-purple-400 border-purple-500/20";
+      return "bg-violet-50 text-violet-700 border-violet-200";
     case "SPEAKER_02":
-      return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
     default:
-      return "bg-slate-500/10 text-slate-400 border-slate-500/20";
+      return "bg-slate-100 text-slate-600 border-slate-200";
   }
 };
 
@@ -40,10 +40,10 @@ export default function TranscriptView({ lines }: TranscriptViewProps) {
   );
 
   return (
-    <div className="space-y-6 text-slate-200">
+    <div className="space-y-6 text-slate-700">
       {/* Bagian Atas: Judul & Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
-        <h3 className="text-sm font-bold text-white">Transkrip Rapat</h3>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+        <h3 className="text-sm font-bold text-slate-900">Transkrip Rapat</h3>
 
         {/* Search Input */}
         <div className="relative w-full sm:w-64">
@@ -53,7 +53,7 @@ export default function TranscriptView({ lines }: TranscriptViewProps) {
             placeholder="Cari dalam transkrip..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-black/20 border border-white/10 rounded-lg pl-9 pr-4 py-1.5 text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:border-[#7E61F2]/50 transition"
+            className="w-full bg-white border border-slate-300 rounded-lg pl-9 pr-4 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition"
           />
         </div>
       </div>
@@ -81,7 +81,7 @@ export default function TranscriptView({ lines }: TranscriptViewProps) {
                 </div>
 
                 {/* Isi Teks */}
-                <p className="text-xs text-slate-400 leading-relaxed font-normal group-hover:text-slate-300 transition">
+                <p className="text-xs text-slate-500 leading-relaxed font-normal group-hover:text-slate-700 transition">
                   {line.text}
                 </p>
               </div>

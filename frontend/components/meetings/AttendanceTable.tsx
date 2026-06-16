@@ -19,18 +19,18 @@ interface AttendanceTableProps {
 
 const statusStyle = {
   "Hadir": {
-    avatar: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    badge: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    avatar: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
     icon: <CheckCircle2 size={9} />,
   },
   "Tidak Hadir": {
-    avatar: "bg-red-500/10 text-red-400 border-red-500/20",
-    badge: "bg-red-500/10 text-red-400 border-red-500/20",
+    avatar: "bg-red-50 text-red-700 border-red-200",
+    badge: "bg-red-50 text-red-700 border-red-200",
     icon: <XCircle size={9} />,
   },
   "Belum Hadir": {
-    avatar: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    badge: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    avatar: "bg-amber-50 text-amber-700 border-amber-200",
+    badge: "bg-amber-50 text-amber-700 border-amber-200",
     icon: <Clock size={9} />,
   },
 };
@@ -38,11 +38,11 @@ const statusStyle = {
 export default function AttendanceTable({ participants, onMarkAttendance }: AttendanceTableProps) {
   return (
     <div className="w-full space-y-4">
-      <div className="flex items-center justify-between border-b border-white/5 pb-2">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
           Status Kehadiran
         </h3>
-        <span className="text-[10px] px-2 py-0.5 bg-purple-500/10 border border-purple-500/20 rounded-md text-purple-400 font-mono">
+        <span className="text-[10px] px-2 py-0.5 bg-blue-50 border border-slate-200 rounded-md text-blue-600 font-mono">
           {participants.filter(p => p.status === "Hadir").length}/{participants.length} Hadir
         </span>
       </div>
@@ -53,14 +53,14 @@ export default function AttendanceTable({ participants, onMarkAttendance }: Atte
           return (
             <div
               key={participant.id}
-              className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl"
+              className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl"
             >
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <div className={cn("w-7 h-7 rounded-full flex items-center justify-center shrink-0 border", style.avatar)}>
                   <User size={12} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-slate-200 truncate">{participant.name}</p>
+                  <p className="text-xs font-semibold text-slate-900 truncate">{participant.name}</p>
                   <p className="text-[10px] text-slate-500 font-mono truncate">{participant.email}</p>
                 </div>
               </div>
@@ -80,7 +80,7 @@ export default function AttendanceTable({ participants, onMarkAttendance }: Atte
                       onClick={() => onMarkAttendance(participant.id, "hadir")}
                       disabled={participant.status === "Hadir"}
                       title="Tandai Hadir"
-                      className="w-6 h-6 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                      className="w-6 h-6 rounded-lg flex items-center justify-center bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-30 disabled:cursor-not-allowed transition"
                     >
                       <Check size={11} />
                     </button>
@@ -88,7 +88,7 @@ export default function AttendanceTable({ participants, onMarkAttendance }: Atte
                       onClick={() => onMarkAttendance(participant.id, "tidak_hadir")}
                       disabled={participant.status === "Tidak Hadir"}
                       title="Tandai Tidak Hadir"
-                      className="w-6 h-6 rounded-lg flex items-center justify-center bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                      className="w-6 h-6 rounded-lg flex items-center justify-center bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-30 disabled:cursor-not-allowed transition"
                     >
                       <X size={11} />
                     </button>
@@ -101,7 +101,7 @@ export default function AttendanceTable({ participants, onMarkAttendance }: Atte
       </div>
 
       {onMarkAttendance && (
-        <p className="text-[10px] text-slate-600 text-center">
+        <p className="text-[10px] text-slate-500 text-center">
           ✓ = Tandai Hadir &nbsp;·&nbsp; ✗ = Tandai Tidak Hadir
         </p>
       )}
