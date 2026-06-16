@@ -121,9 +121,16 @@ export const searchMeetings = async (q: string, params?: { page?: number; limit?
 // RECORDINGS
 // ==========================================
 
-export const uploadRecording = async (meetingId: string, formData: FormData) => {
+export const uploadRecording = async (
+  meetingId: string,
+  formData: FormData,
+  onUploadProgress?: (percent: number) => void
+) => {
   const response = await api.post(`/meetings/${meetingId}/recording`, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
+    onUploadProgress: (event) => {
+      if (!onUploadProgress || !event.total) return;
+      onUploadProgress(Math.round((event.loaded / event.total) * 100));
+    },
   });
   return response.data;
 };
@@ -178,8 +185,11 @@ export const getMyActionItems = async (status?: "open" | "done") => {
   return response.data;
 };
 
-export const updateActionItem = async (id: string, status: "open" | "done") => {
-  const response = await api.patch(`/action-items/${id}`, { status });
+export const updateActionItem = async (
+  id: string,
+  payload: { status?: "open" | "done"; assignee_id?: string | null }
+) => {
+  const response = await api.patch(`/action-items/${id}`, payload);
   return response.data;
 };
 

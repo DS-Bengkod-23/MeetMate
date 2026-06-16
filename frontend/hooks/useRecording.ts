@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { uploadRecording, getRecordingStatus, deleteRecording } from "@/lib/api";
 
@@ -19,13 +20,23 @@ export function useRecordingStatus(meetingId: string, enabled = false) {
 
 export function useUploadRecording(meetingId: string) {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (formData: FormData) => uploadRecording(meetingId, formData),
+  const [progress, setProgress] = useState(0);
+
+  const mutation = useMutation({
+    mutationFn: (formData: FormData) => {
+      setProgress(0);
+      return uploadRecording(meetingId, formData, setProgress);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["meeting", meetingId] });
       queryClient.invalidateQueries({ queryKey: ["recording-status", meetingId] });
     },
+    onSettled: () => {
+      setProgress(0);
+    },
   });
+
+  return { ...mutation, progress: mutation.isPending ? progress : 0 };
 }
 
 export function useDeleteRecording(meetingId: string) {

@@ -37,11 +37,11 @@ export default function UploadZone({ onUpload }: UploadZoneProps) {
         onClick={() => inputRef.current?.click()}
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
-        className="border-2 border-dashed border-white/10 hover:border-[#7E61F2]/50 bg-white/[0.02] hover:bg-[#7E61F2]/5 rounded-xl p-6 text-center cursor-pointer transition-all group"
+        className="border-2 border-dashed border-slate-200 hover:border-blue-500 bg-white hover:bg-blue-50 rounded-xl p-6 text-center cursor-pointer transition-all group"
       >
-        <UploadCloud size={24} className="mx-auto text-slate-500 mb-2 group-hover:text-purple-400 transition-colors" />
-        <p className="text-[11px] text-slate-400 font-medium">Klik atau drag &amp; drop rekaman</p>
-        <p className="text-[10px] text-slate-600 mt-1">MP3, MP4, WAV, M4A · Maks. 200MB</p>
+        <UploadCloud size={24} className="mx-auto text-slate-500 mb-2 group-hover:text-blue-600 transition-colors" />
+        <p className="text-[11px] text-slate-700 font-medium">Klik atau drag &amp; drop rekaman</p>
+        <p className="text-[10px] text-slate-500 mt-1">MP3, MP4, WAV, M4A · Maks. 200MB</p>
       </div>
     </>
   );

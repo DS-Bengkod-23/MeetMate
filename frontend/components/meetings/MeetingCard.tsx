@@ -28,16 +28,16 @@ export default function MeetingCard({
   hasRecording,
 }: MeetingCardProps) {
   return (
-    <div className="bg-[#120e2e]/40 border border-purple-500/10 backdrop-blur-md rounded-2xl p-5 shadow-[0_10px_30px_rgba(0,0,0,0.3)] flex flex-col justify-between hover:border-purple-500/30 transition-all duration-300 group">
+    <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 flex flex-col justify-between hover:border-slate-300 transition-all duration-300 group">
       <div className="space-y-4">
         {/* Status Badge + Indikator */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <span
             className={cn(
               "text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wide uppercase",
-              status === "Dijadwalkan" && "bg-blue-500/10 text-blue-400 border border-blue-500/20",
-              status === "Selesai" && "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-              status === "Dibatalkan" && "bg-red-500/10 text-red-400 border border-red-500/20"
+              status === "Dijadwalkan" && "bg-blue-50 text-blue-700 border border-blue-200",
+              status === "Selesai" && "bg-emerald-50 text-emerald-700 border border-emerald-200",
+              status === "Dibatalkan" && "bg-red-50 text-red-700 border border-red-200"
             )}
           >
             {status}
@@ -45,12 +45,12 @@ export default function MeetingCard({
 
           <div className="flex items-center gap-1.5">
             {hasRecording && !hasTranscript && (
-              <span className="flex items-center gap-1 text-[10px] font-medium text-amber-400 bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/10">
+              <span className="flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                 <Mic size={10} /> Rekaman
               </span>
             )}
             {hasTranscript && (
-              <span className="flex items-center gap-1 text-[10px] font-medium text-purple-400 bg-purple-500/5 px-2 py-0.5 rounded border border-purple-500/10">
+              <span className="flex items-center gap-1 text-[10px] font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-slate-200">
                 <FileCheck size={10} /> AI Ready
               </span>
             )}
@@ -58,12 +58,12 @@ export default function MeetingCard({
         </div>
 
         {/* Title */}
-        <h3 className="text-base font-bold text-white line-clamp-2 group-hover:text-[#8F75FA] transition-colors">
+        <h3 className="text-base font-bold text-slate-900 line-clamp-2 group-hover:text-blue-700 transition-colors">
           {title}
         </h3>
 
         {/* Metadata */}
-        <div className="space-y-2 text-xs text-slate-400 font-normal">
+        <div className="space-y-2 text-xs text-slate-500 font-normal">
           <div className="flex items-center gap-2">
             <Calendar size={13} className="text-slate-500" />
             <span className="line-clamp-1">{date}</span>
@@ -80,10 +80,10 @@ export default function MeetingCard({
       </div>
 
       {/* Action Button */}
-      <div className="border-t border-purple-950/40 mt-5 pt-4">
+      <div className="border-t border-slate-200 mt-5 pt-4">
         <Link
           href={`/meetings/${id}`}
-          className="flex items-center justify-between text-xs font-bold text-purple-400 hover:text-purple-300 transition-colors w-full"
+          className="flex items-center justify-between text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors w-full"
         >
           <span>Lihat Detail Notulensi</span>
           <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />

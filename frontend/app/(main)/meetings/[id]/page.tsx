@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, UserCircle, Calendar, MapPin, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, isDateOverdue } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,21 +45,34 @@ export default function MeetingDetailPage() {
 
   const { data: meeting, isLoading, isError } = useMeeting(id);
   const { data: recordingStatus } = useRecordingStatus(id, pollingEnabled);
-  const { mutateAsync: uploadRecording, isPending: isUploading } = useUploadRecording(id);
+  const { mutateAsync: uploadRecording, isPending: isUploading, progress: uploadProgress } = useUploadRecording(id);
   const { mutateAsync: deleteRecording, isPending: isDeletingRec } = useDeleteRecording(id);
+
+  const recordingFilenameKey = `recording_filename_${id}`;
+  const [recordingFileName, setRecordingFileName] = useState<string | null>(null);
+  useEffect(() => {
+    setRecordingFileName(localStorage.getItem(recordingFilenameKey));
+  }, [recordingFilenameKey]);
   const { mutate: updateAttendance } = useUpdateAttendance(id);
-  const { mutate: updateActionItem } = useUpdateActionItem();
+  const { mutate: updateActionItem } = useUpdateActionItem(id);
   const { mutateAsync: deleteMeeting, isPending: isDeletingMeeting } = useDeleteMeeting();
 
   // Deteksi apakah user adalah organizer
-  const currentUserEmail = JSON.parse(localStorage.getItem("user_profile") || "{}").email;
-  const isOrganizer = meeting?.organizer?.email === currentUserEmail;
+  let currentUserEmail: string | undefined;
+  try {
+    currentUserEmail = JSON.parse(localStorage.getItem("user_profile") || "{}").email;
+  } catch {
+    currentUserEmail = undefined;
+  }
+  const isOrganizer = !!currentUserEmail && meeting?.organizer?.email === currentUserEmail;
 
   const handleUpload = async (file: File) => {
     const form = new FormData();
     form.append("file", file);
     try {
       await uploadRecording(form);
+      localStorage.setItem(recordingFilenameKey, file.name);
+      setRecordingFileName(file.name);
       setPollingEnabled(true);
       toast.success("Rekaman berhasil diupload, AI sedang memproses...");
     } catch {
@@ -70,6 +83,8 @@ export default function MeetingDetailPage() {
   const handleDeleteRecording = async () => {
     try {
       await deleteRecording();
+      localStorage.removeItem(recordingFilenameKey);
+      setRecordingFileName(null);
       setPollingEnabled(false);
       toast.success("Rekaman berhasil dihapus.");
     } catch {
@@ -98,6 +113,10 @@ export default function MeetingDetailPage() {
     updateActionItem({ id: String(taskId), status: newStatus });
   };
 
+  const handleAssignTask = (taskId: string | number, assigneeId: string) => {
+    updateActionItem({ id: String(taskId), assigneeId: assigneeId || null });
+  };
+
   // Map participants ke format AttendanceTable
   const attendanceData = (meeting?.participants ?? []).map((p: any) => {
     const rawStatus = p.attendance_status ?? "pending";
@@ -106,7 +125,7 @@ export default function MeetingDetailPage() {
       rawStatus === "tidak_hadir" ? "Tidak Hadir" : "Belum Hadir";
     return {
       id: String(p.id),
-      name: p.name || p.email.split("@")[0],
+      name: p.name || p.email?.split("@")[0] || "Tanpa Nama",
       email: p.email,
       status: status as "Hadir" | "Tidak Hadir" | "Belum Hadir",
       rawStatus,
@@ -115,7 +134,7 @@ export default function MeetingDetailPage() {
 
   // Map action items ke format ActionItemList
   const actionItems = (meeting?.action_items ?? []).map((item: any) => {
-    const isOverdue = item.due_date && new Date(item.due_date) < new Date();
+    const isOverdue = item.due_date && isDateOverdue(item.due_date);
     const status =
       item.status === "done" ? "Selesai" :
       isOverdue ? "Terlambat" : "Aktif";
@@ -123,18 +142,24 @@ export default function MeetingDetailPage() {
       id: item.id,
       task: item.task,
       assignee: item.assignee?.name || "Belum di-assign",
+      assigneeId: item.assignee?.id ?? null,
       dueDate: item.due_date || "2099-12-31",
       status,
       priority: "Sedang" as const,
     };
   });
 
+  const participantOptions = (meeting?.participants ?? []).map((p: any) => ({
+    id: String(p.id),
+    name: p.name || p.email?.split("@")[0] || "Tanpa Nama",
+  }));
+
   // Tentukan status proses rekaman
   const processingStatus = recordingStatus?.processing_status ?? meeting?.processing_status;
   const steps = recordingStatus?.steps;
 
   const mapProcessStatus = () => {
-    if (!processingStatus || processingStatus === "queued") return "uploading";
+    if (isUploading) return "uploading";
     if (processingStatus === "completed") return "ready";
     return "processing";
   };
@@ -146,7 +171,7 @@ export default function MeetingDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="w-full min-h-screen bg-[#0A051B] flex items-center justify-center text-slate-400 text-xs font-medium">
+      <div className="w-full min-h-screen bg-slate-50 flex items-center justify-center text-slate-500 text-xs font-medium">
         Memuat detail data rapat...
       </div>
     );
@@ -154,46 +179,46 @@ export default function MeetingDetailPage() {
 
   if (isError || !meeting) {
     return (
-      <div className="w-full min-h-screen bg-[#0A051B] flex flex-col items-center justify-center gap-4">
+      <div className="w-full min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
         <p className="text-rose-400 text-sm">Rapat tidak ditemukan atau terjadi kesalahan.</p>
-        <Link href="/meetings" className="text-purple-400 text-xs hover:underline">← Kembali ke Dashboard</Link>
+        <Link href="/meetings" className="text-blue-600 text-xs hover:underline">← Kembali ke Dashboard</Link>
       </div>
     );
   }
 
   return (
-    <main className="bg-[#0A051B] min-h-screen text-slate-200 pb-16 px-6">
+    <main className="bg-slate-50 min-h-screen text-slate-900 pb-16 px-6">
       <div className="max-w-7xl mx-auto pt-8">
 
-        <Link href="/meetings" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition text-xs font-medium mb-6">
+        <Link href="/meetings" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 transition text-xs font-medium mb-6">
           <ArrowLeft size={16} /> Kembali ke Dashboard
         </Link>
 
-        <div className="flex items-start justify-between mb-8">
-          <h1 className="text-2xl font-bold text-white">{meeting.title}</h1>
+        <div className="flex items-start justify-between mb-8 animate-in fade-in-0 slide-in-from-bottom-3 duration-300">
+          <h1 className="text-2xl font-bold text-slate-900">{meeting.title}</h1>
           {isOrganizer && (
             <div className="flex items-center gap-2">
               <Link
                 href={`/meetings/${id}/edit`}
-                className="text-xs font-semibold text-purple-400 border border-purple-500/30 px-4 py-2 rounded-xl hover:bg-purple-500/10 transition"
+                className="text-xs font-semibold text-blue-600 border border-blue-200 px-4 py-2 rounded-xl hover:bg-blue-50 transition"
               >
                 Edit Rapat
               </Link>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <button className="text-xs font-semibold text-rose-400 border border-rose-500/30 px-4 py-2 rounded-xl hover:bg-rose-500/10 transition flex items-center gap-1.5">
+                  <button className="text-xs font-semibold text-rose-600 border border-rose-200 px-4 py-2 rounded-xl hover:bg-rose-50 transition flex items-center gap-1.5">
                     <Trash2 size={13} /> Hapus Rapat
                   </button>
                 </AlertDialogTrigger>
-                <AlertDialogContent className="bg-[#130E29] border border-white/10 text-white">
+                <AlertDialogContent className="bg-white border border-slate-200 text-slate-900">
                   <AlertDialogHeader>
                     <AlertDialogTitle>Hapus Rapat?</AlertDialogTitle>
-                    <AlertDialogDescription className="text-slate-400">
+                    <AlertDialogDescription className="text-slate-500">
                       Tindakan ini tidak dapat dibatalkan. Semua data rapat termasuk rekaman, transkrip, dan action items akan dihapus secara permanen.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel className="bg-transparent border border-white/10 text-slate-300 hover:bg-white/5 hover:text-white">
+                    <AlertDialogCancel className="bg-transparent border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900">
                       Batalkan
                     </AlertDialogCancel>
                     <AlertDialogAction
@@ -210,16 +235,16 @@ export default function MeetingDetailPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in-0 slide-in-from-bottom-3 duration-300 delay-75">
 
           {/* ====== KOLOM KIRI ====== */}
           <div className="space-y-6">
 
             {/* Upload Rekaman */}
             {isOrganizer && (
-              <section className="bg-[#110A31]/70 border border-white/5 p-6 rounded-2xl">
+              <section className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Upload Rekaman</h2>
+                  <h2 className="text-xs font-bold text-blue-700 uppercase tracking-wider">Upload Rekaman</h2>
                   {hasRecording && (
                     <button
                       onClick={handleDeleteRecording}
@@ -234,15 +259,15 @@ export default function MeetingDetailPage() {
                 {!showProcessing ? (
                   <UploadZone onUpload={handleUpload} />
                 ) : isFailed ? (
-                  <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-4 text-center space-y-2">
-                    <p className="text-xs font-bold text-rose-400">Proses gagal</p>
+                  <div className="rounded-xl bg-rose-50 border border-rose-200 p-4 text-center space-y-2">
+                    <p className="text-xs font-bold text-rose-600">Proses gagal</p>
                     {processingError && (
-                      <p className="text-[11px] text-rose-300/70 font-mono break-all">{processingError}</p>
+                      <p className="text-[11px] text-rose-500 font-mono break-all">{processingError}</p>
                     )}
                     <button
                       onClick={handleDeleteRecording}
                       disabled={isDeletingRec}
-                      className="text-[11px] text-rose-400 hover:text-rose-300 underline transition mt-1"
+                      className="text-[11px] text-rose-600 hover:text-rose-700 underline transition mt-1"
                     >
                       Hapus dan coba upload ulang
                     </button>
@@ -250,7 +275,8 @@ export default function MeetingDetailPage() {
                 ) : (
                   <ProcessingStatus
                     status={mapProcessStatus()}
-                    progress={processingStatus === "completed" ? 100 : 60}
+                    progress={isUploading ? uploadProgress : 100}
+                    fileName={recordingFileName}
                   />
                 )}
                 {!isFailed && steps && (
@@ -259,8 +285,8 @@ export default function MeetingDetailPage() {
                       <div key={step} className="flex items-center justify-between text-[11px] text-slate-500">
                         <span className="capitalize">{step.replace(/_/g, " ")}</span>
                         <span className={cn(
-                          val === "completed" ? "text-emerald-400" :
-                          val === "in_progress" ? "text-amber-400" : "text-slate-600"
+                          val === "completed" ? "text-emerald-700" :
+                          val === "in_progress" ? "text-amber-700" : "text-slate-500"
                         )}>{String(val)}</span>
                       </div>
                     ))}
@@ -270,34 +296,34 @@ export default function MeetingDetailPage() {
             )}
 
             {/* Informasi Rapat */}
-            <section className="bg-[#110A31]/70 border border-white/5 p-6 rounded-2xl space-y-4">
-              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-white/5 pb-3">Informasi Rapat</h2>
-              <div className="text-xs space-y-3.5 text-slate-300">
-                <p className="flex items-center gap-2.5"><UserCircle className="text-purple-400" size={15} /> {meeting.organizer?.name}</p>
-                <p className="flex items-center gap-2.5"><Calendar className="text-purple-400" size={15} /> {formatDate(meeting.scheduled_at)}</p>
-                <p className="flex items-center gap-2.5"><MapPin className="text-purple-400" size={15} /> {meeting.location || "–"}</p>
+            <section className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 space-y-4">
+              <h2 className="text-xs font-bold text-blue-700 uppercase tracking-wider border-b border-slate-200 pb-3">Informasi Rapat</h2>
+              <div className="text-xs space-y-3.5 text-slate-700">
+                <p className="flex items-center gap-2.5"><UserCircle className="text-blue-600" size={15} /> {meeting.organizer?.name}</p>
+                <p className="flex items-center gap-2.5"><Calendar className="text-blue-600" size={15} /> {formatDate(meeting.scheduled_at)}</p>
+                <p className="flex items-center gap-2.5"><MapPin className="text-blue-600" size={15} /> {meeting.location || "–"}</p>
               </div>
               {meeting.description && (
-                <div className="pt-3 border-t border-white/5 space-y-1.5">
+                <div className="pt-3 border-t border-slate-200 space-y-1.5">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Deskripsi</p>
-                  <p className="text-xs text-slate-300 leading-relaxed">{meeting.description}</p>
+                  <p className="text-xs text-slate-700 leading-relaxed">{meeting.description}</p>
                 </div>
               )}
               {meeting.agenda_text && (
-                <div className="pt-3 border-t border-white/5 space-y-1.5">
+                <div className="pt-3 border-t border-slate-200 space-y-1.5">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Agenda</p>
-                  <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-line">{meeting.agenda_text}</p>
+                  <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">{meeting.agenda_text}</p>
                 </div>
               )}
             </section>
 
             {/* Peserta */}
-            <section className="bg-[#110A31]/70 border border-white/5 p-6 rounded-2xl">
+            <section className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
               <ParticipantList emails={(meeting.participants ?? []).map((p: any) => p.email)} />
             </section>
 
             {/* Kehadiran */}
-            <section className="bg-[#110A31]/70 border border-white/5 p-6 rounded-2xl">
+            <section className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
               <AttendanceTable
                 participants={attendanceData}
                 onMarkAttendance={isOrganizer ? handleMarkAttendance : undefined}
@@ -309,14 +335,14 @@ export default function MeetingDetailPage() {
           <div className="lg:col-span-2 space-y-6">
 
             {/* Tab Ringkasan / Transkrip */}
-            <section className="bg-[#110A31]/70 border border-white/5 rounded-2xl overflow-hidden">
-              <div className="flex p-1 bg-black/20 border-b border-white/5">
+            <section className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
+              <div className="flex p-1 bg-slate-100 border-b border-slate-200">
                 {(["ringkasan", "transkrip"] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     className={cn("flex-1 py-2.5 text-xs font-bold rounded-xl transition capitalize",
-                      activeTab === tab ? "bg-[#7E61F2] text-white" : "text-slate-400 hover:text-slate-200"
+                      activeTab === tab ? "bg-blue-700 text-white" : "text-slate-500 hover:text-slate-700"
                     )}
                   >
                     {tab === "ringkasan" ? "Ringkasan AI" : "Transkrip Audio"}
@@ -354,9 +380,14 @@ export default function MeetingDetailPage() {
             </section>
 
             {/* Action Items */}
-            <section className="bg-[#110A31]/70 border border-white/5 p-6 rounded-2xl">
-              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Action Items</h2>
-              <ActionItemList items={actionItems} onToggle={handleToggleTask} />
+            <section className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
+              <h2 className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-4">Action Items</h2>
+              <ActionItemList
+                items={actionItems}
+                onToggle={handleToggleTask}
+                participants={participantOptions}
+                onAssign={isOrganizer ? handleAssignTask : undefined}
+              />
             </section>
 
           </div>

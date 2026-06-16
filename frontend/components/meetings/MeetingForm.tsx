@@ -64,49 +64,49 @@ export default function MeetingForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-[#120e2e]/40 border border-purple-500/10 backdrop-blur-md rounded-2xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] space-y-8"
+      className="bg-white border border-slate-200 shadow-sm rounded-2xl p-8 space-y-8"
     >
       {/* SECTION 1: INFORMASI UTAMA */}
       <div className="space-y-5">
-        <h2 className="text-sm font-bold text-purple-400 uppercase tracking-wider border-b border-purple-950/40 pb-2">
+        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 pb-2">
           1. Detail Rapat
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-400 flex items-center gap-2">
-              <Type size={14} className="text-slate-500" /> Judul Rapat <span className="text-purple-400">*</span>
+            <label className="text-xs font-semibold text-slate-700 flex items-center gap-2">
+              <Type size={14} className="text-slate-500" /> Judul Rapat <span className="text-blue-600">*</span>
             </label>
             <input
               type="text"
               required
               placeholder="Contoh: Weekly Standup Sprint"
-              className="w-full px-4 py-3 rounded-xl bg-[#050412]/80 border border-purple-950/50 text-slate-200 text-sm placeholder-slate-600 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all"
+              className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-400 flex items-center gap-2">
-              <MapPin size={14} className="text-slate-500" /> Lokasi / Tautan Rapat <span className="text-purple-400">*</span>
+            <label className="text-xs font-semibold text-slate-700 flex items-center gap-2">
+              <MapPin size={14} className="text-slate-500" /> Lokasi / Tautan Rapat <span className="text-blue-600">*</span>
             </label>
             <input
               type="text"
               required
               placeholder="Contoh: Zoom / Ruang Rapat Lt. 3"
-              className="w-full px-4 py-3 rounded-xl bg-[#050412]/80 border border-purple-950/50 text-slate-200 text-sm placeholder-slate-600 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all"
+              className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
             />
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <label className="text-xs font-semibold text-slate-400 flex items-center gap-2">
-              <Calendar size={14} className="text-slate-500" /> Jadwal & Waktu Pelaksanaan <span className="text-purple-400">*</span>
+            <label className="text-xs font-semibold text-slate-700 flex items-center gap-2">
+              <Calendar size={14} className="text-slate-500" /> Jadwal & Waktu Pelaksanaan <span className="text-blue-600">*</span>
             </label>
             <input
               type="datetime-local"
               required
-              className="w-full px-4 py-3 rounded-xl bg-[#050412]/80 border border-purple-950/50 text-slate-200 text-sm focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all [color-scheme:dark]"
+              className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all [color-scheme:light]"
               onChange={(e) => setFormData({ ...formData, dateTime: e.target.value })}
             />
           </div>
@@ -115,31 +115,31 @@ export default function MeetingForm() {
 
       {/* SECTION 2: KONTEN & AGENDA */}
       <div className="space-y-5">
-        <h2 className="text-sm font-bold text-purple-400 uppercase tracking-wider border-b border-purple-950/40 pb-2">
+        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 pb-2">
           2. Deskripsi & Agenda
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-400 flex items-center gap-2">
+            <label className="text-xs font-semibold text-slate-700 flex items-center gap-2">
               <FileText size={14} className="text-slate-500" /> Deskripsi Singkat
             </label>
             <textarea
               rows={4}
               placeholder="Berikan gambaran ringkas mengenai topik rapat utama..."
-              className="w-full px-4 py-3 rounded-xl bg-[#050412]/80 border border-purple-950/50 text-slate-200 text-sm placeholder-slate-600 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all resize-none"
+              className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all resize-none"
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-400 flex items-center gap-2">
+            <label className="text-xs font-semibold text-slate-700 flex items-center gap-2">
               <FileText size={14} className="text-slate-500" /> Poin-Poin Agenda
             </label>
             <textarea
               rows={4}
               placeholder="1. Pembuka&#10;2. Pembahasan Sprint 24&#10;3. Evaluasi Kendala"
-              className="w-full px-4 py-3 rounded-xl bg-[#050412]/80 border border-purple-950/50 text-slate-200 text-sm placeholder-slate-600 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all resize-none"
+              className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all resize-none"
               onChange={(e) => setFormData({ ...formData, agenda: e.target.value })}
             />
           </div>
@@ -148,12 +148,12 @@ export default function MeetingForm() {
 
       {/* SECTION 3: PESERTA */}
       <div className="space-y-5">
-        <h2 className="text-sm font-bold text-purple-400 uppercase tracking-wider border-b border-purple-950/40 pb-2">
+        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 pb-2">
           3. Distribusi Undangan
         </h2>
 
         <div className="space-y-3">
-          <label className="text-xs font-semibold text-slate-400">Undang Peserta Rapat (Email)</label>
+          <label className="text-xs font-semibold text-slate-700">Undang Peserta Rapat (Email)</label>
           <div className="flex gap-2">
             <input
               type="email"
@@ -161,12 +161,12 @@ export default function MeetingForm() {
               onChange={(e) => setEmailInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddParticipant())}
               placeholder="Ketik email rekan tim kamu di sini..."
-              className="flex-1 px-4 py-3 rounded-xl bg-[#050412]/80 border border-purple-950/50 text-slate-200 text-sm placeholder-slate-600 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 transition-all"
+              className="flex-1 px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
             />
             <button
               type="button"
               onClick={handleAddParticipant}
-              className="px-4 rounded-xl bg-[#08061a] border border-purple-500/20 text-purple-400 hover:bg-purple-600 hover:text-white transition-all flex items-center justify-center outline-none"
+              className="px-4 rounded-xl bg-white border border-slate-200 text-blue-600 hover:bg-blue-700 hover:text-white transition-all flex items-center justify-center outline-none"
             >
               <Plus size={18} />
             </button>
@@ -180,12 +180,12 @@ export default function MeetingForm() {
               {participants.map((email) => (
                 <span
                   key={email}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-[#7E61F2]/10 border border-purple-500/20 text-purple-300 rounded-lg text-xs font-medium backdrop-blur-sm"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-slate-200 text-blue-700 rounded-lg text-xs font-medium"
                 >
                   <span>{email}</span>
                   <X
                     size={12}
-                    className="cursor-pointer text-purple-400 hover:text-red-400 transition-colors"
+                    className="cursor-pointer text-blue-600 hover:text-red-400 transition-colors"
                     onClick={() => handleRemoveParticipant(email)}
                   />
                 </span>
@@ -198,18 +198,18 @@ export default function MeetingForm() {
       <FormError message={formError} />
 
       {/* FOOTER ACTIONS BUTTON */}
-      <div className="border-t border-purple-950/40 pt-6 flex flex-col sm:flex-row items-center justify-end gap-3">
+      <div className="border-t border-slate-200 pt-6 flex flex-col sm:flex-row items-center justify-end gap-3">
         <button
           type="button"
           onClick={() => router.back()}
-          className="w-full sm:w-auto px-6 py-3 rounded-xl border border-purple-950 text-slate-400 hover:text-white hover:bg-purple-950/20 font-semibold text-sm transition-all"
+          className="w-full sm:w-auto px-6 py-3 rounded-xl border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 font-semibold text-sm transition-all"
         >
           Batalkan
         </button>
         <button
           type="submit"
           disabled={isPending}
-          className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-[#7E61F2] to-[#6344E3] hover:from-[#8F75FA] hover:to-[#7254F5] text-white font-bold text-sm shadow-[0_4px_20px_rgba(126,97,242,0.3)] hover:shadow-[0_4px_25px_rgba(126,97,242,0.5)] transition-all duration-300 disabled:opacity-50"
+          className="w-full sm:w-auto px-8 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm transition-all duration-300 disabled:opacity-50"
         >
           {isPending ? "Menyimpan..." : "Jadwalkan Pertemuan"}
         </button>

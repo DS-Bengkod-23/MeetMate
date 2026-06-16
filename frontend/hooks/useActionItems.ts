@@ -8,13 +8,23 @@ export function useMyActionItems(status?: "open" | "done") {
   });
 }
 
-export function useUpdateActionItem() {
+export function useUpdateActionItem(meetingId?: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: "open" | "done" }) =>
-      updateActionItem(id, status),
+    mutationFn: ({
+      id,
+      status,
+      assigneeId,
+    }: {
+      id: string;
+      status?: "open" | "done";
+      assigneeId?: string | null;
+    }) => updateActionItem(id, { status, assignee_id: assigneeId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["action-items"] });
+      if (meetingId) {
+        queryClient.invalidateQueries({ queryKey: ["meeting", meetingId] });
+      }
     },
   });
 }
