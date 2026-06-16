@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Video, CheckSquare, User, LogOut } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function MainDashboardLayout({
     children,
@@ -13,16 +13,20 @@ export default function MainDashboardLayout({
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
+    const pathname = usePathname();
+    const isActive = (href: string) => pathname.startsWith(href);
 
-    // State dinamis untuk nama profil di navbar
     const [profileName, setProfileName] = useState("John Doe");
 
-    // Fungsi mengambil nama & membuat inisial (cth: John Doe -> JD)
     const loadProfileData = () => {
         const savedProfile = localStorage.getItem("user_profile");
         if (savedProfile) {
-            const parsed = JSON.parse(savedProfile);
-            if (parsed.name) setProfileName(parsed.name);
+            try {
+                const parsed = JSON.parse(savedProfile);
+                if (parsed.name) setProfileName(parsed.name);
+            } catch {
+                localStorage.removeItem("user_profile");
+            }
         }
     };
 
@@ -35,18 +39,13 @@ export default function MainDashboardLayout({
     };
 
     useEffect(() => {
-        // Ambil data saat pertama kali load
         loadProfileData();
-
-        // Daftarkan event listener agar jika user klik 'Save' di page profile, navbar langsung merespon otomatis
         window.addEventListener("profileUpdate", loadProfileData);
-
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
             }
         };
-
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
@@ -55,53 +54,64 @@ export default function MainDashboardLayout({
     }, []);
 
     return (
-        <div className="w-full min-h-screen flex flex-col bg-[#08071a] overflow-x-hidden">
-            <header className="w-full border-b border-purple-950/30 bg-[#08071a]/60 backdrop-blur-md sticky top-0 z-50">
+        <div className="w-full min-h-screen flex flex-col bg-slate-50 overflow-x-hidden">
+            <header className="w-full border-b border-slate-200 bg-white sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-6 h-16 grid grid-cols-3 items-center">
 
                     {/* Logo */}
-                    <div className="flex items-center justify-start gap-3">
-                        <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#7E61F2] to-[#1D008C] flex items-center justify-center shadow-[0_0_15px_rgba(126,97,242,0.2)]">
+                    <div className="flex items-center justify-start gap-2.5">
+                        <div className="h-7 w-7 rounded-lg bg-blue-800 flex items-center justify-center">
                             <Video size={14} className="text-white" />
                         </div>
-                        <span className="font-bold text-lg tracking-wide text-white">MeetMate</span>
+                        <span className="font-bold text-lg tracking-wide text-slate-900">MeetMate</span>
                     </div>
 
                     {/* Navigasi */}
-                    <nav className="hidden md:flex items-center justify-center gap-8 text-sm font-medium">
-                        <Link href="/meetings" className="text-white hover:text-[#7E61F2] transition-colors flex items-center gap-2">
-                            <Video size={16} className="text-purple-400" /> Rapat
+                    <nav className="hidden md:flex items-center justify-center gap-2 text-sm font-medium">
+                        <Link
+                            href="/meetings"
+                            className={isActive("/meetings")
+                                ? "bg-blue-50 text-blue-700 font-semibold flex items-center gap-2 px-3 py-1.5 rounded-lg"
+                                : "text-slate-500 hover:text-blue-700 hover:bg-slate-50 flex items-center gap-2 px-3 py-1.5 rounded-lg transition"
+                            }
+                        >
+                            <Video size={16} /> Rapat
                         </Link>
-                        <Link href="/action-items" className="text-slate-400 hover:text-white transition-colors flex items-center gap-2">
+                        <Link
+                            href="/action-items"
+                            className={isActive("/action-items")
+                                ? "bg-blue-50 text-blue-700 font-semibold flex items-center gap-2 px-3 py-1.5 rounded-lg"
+                                : "text-slate-500 hover:text-blue-700 hover:bg-slate-50 flex items-center gap-2 px-3 py-1.5 rounded-lg transition"
+                            }
+                        >
                             <CheckSquare size={16} /> Tugas Saya
                         </Link>
                     </nav>
 
-                    {/* Avatar & Dropdown Dinamis */}
+                    {/* Avatar & Dropdown */}
                     <div className="flex items-center justify-end relative" ref={dropdownRef}>
                         <button
                             onClick={() => setIsOpen(!isOpen)}
-                            className="flex items-center gap-3 bg-[#130f26]/40 border border-purple-950/40 px-3 py-1.5 rounded-full hover:border-purple-500/30 transition-all cursor-pointer"
+                            className="flex items-center gap-2.5 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-full hover:border-blue-300 transition-all cursor-pointer"
                         >
-                            <div className="h-6 w-6 rounded-full bg-gradient-to-r from-[#7E61F2] to-[#6344E3] text-[10px] font-bold flex items-center justify-center text-white">
+                            <div className="h-6 w-6 rounded-full bg-blue-800 text-[10px] font-bold flex items-center justify-center text-white">
                                 {getInitials(profileName)}
                             </div>
-                            <span className="text-xs font-semibold text-slate-300 hidden sm:inline">{profileName}</span>
+                            <span className="text-xs font-semibold text-slate-700 hidden sm:inline">{profileName}</span>
                         </button>
 
-                        {/* Menu Pop-up */}
                         {isOpen && (
-                            <div className="absolute top-full right-0 mt-2 w-40 bg-[#130E29] border border-purple-500/20 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                            <div className="absolute top-full right-0 mt-2 w-44 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden animate-in fade-in zoom-in duration-200">
                                 <Link
                                     href="/profile"
                                     onClick={() => setIsOpen(false)}
-                                    className="flex items-center gap-3 px-4 py-3 text-xs text-slate-300 hover:bg-white/5 hover:text-white transition"
+                                    className="flex items-center gap-3 px-4 py-3 text-xs text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
                                 >
                                     <User size={14} /> Personal Info
                                 </Link>
                                 <button
                                     onClick={() => router.push('/login')}
-                                    className="flex items-center gap-3 px-4 py-3 text-xs text-rose-400 hover:bg-rose-500/10 w-full transition"
+                                    className="flex items-center gap-3 px-4 py-3 text-xs text-rose-500 hover:bg-rose-50 w-full transition"
                                 >
                                     <LogOut size={14} /> Log Out
                                 </button>

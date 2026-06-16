@@ -13,7 +13,7 @@ import {
   Clock,
   ArrowLeft
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isDateOverdue } from "@/lib/utils";
 import { useMyActionItems, useUpdateActionItem } from "@/hooks/useActionItems";
 
 export default function ActionItemsPage() {
@@ -31,7 +31,7 @@ export default function ActionItemsPage() {
 
   // Map API data → format UI
   const tasks = rawItems.map((item: any) => {
-    const isOverdue = item.due_date && new Date(item.due_date) < new Date();
+    const isOverdue = item.due_date && isDateOverdue(item.due_date);
     const status =
       item.status === "done" ? "Selesai" :
       isOverdue ? "Terlambat" : "Aktif";
@@ -81,34 +81,34 @@ export default function ActionItemsPage() {
   }, [tasks, searchQuery, activeFilter]);
 
   return (
-    <main className="bg-[#0A051B] min-h-screen text-slate-100 pb-16 pt-8">
+    <main className="bg-slate-50 min-h-screen text-slate-900 pb-16 pt-8">
       <div className="max-w-5xl mx-auto px-6 space-y-8">
 
         <button
           onClick={() => router.back()}
-          className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition text-xs font-medium mb-4"
+          className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 transition text-xs font-medium mb-4"
         >
           <ArrowLeft size={16} />
           Kembali ke Dashboard
         </button>
 
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
-            <ClipboardList className="text-[#7E61F2]" size={26} /> Tugas Saya
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2.5">
+            <ClipboardList className="text-blue-700" size={26} /> Tugas Saya
           </h1>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 animate-in fade-in-0 slide-in-from-bottom-3 duration-300 delay-75">
           {[
-            { label: "Total Tugas", val: stats.total, icon: ClipboardList, style: "bg-blue-500/10 border-blue-500/20 text-blue-400" },
-            { label: "Tugas Aktif", val: stats.aktif, icon: AlertCircle, style: "bg-amber-500/10 border-amber-500/20 text-amber-400" },
-            { label: "Tugas Selesai", val: stats.selesai, icon: CheckCircle2, style: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" },
+            { label: "Total Tugas", val: stats.total, icon: ClipboardList, style: "bg-blue-50 border-blue-200 text-blue-700" },
+            { label: "Tugas Aktif", val: stats.aktif, icon: AlertCircle, style: "bg-amber-50 border-amber-200 text-amber-700" },
+            { label: "Tugas Selesai", val: stats.selesai, icon: CheckCircle2, style: "bg-emerald-50 border-emerald-200 text-emerald-700" },
           ].map((stat, i) => (
-            <div key={i} className="bg-[#130E29]/60 p-5 rounded-2xl border border-white/5 flex items-center justify-between">
+            <div key={i} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold text-slate-400 uppercase">{stat.label}</span>
-                <p className="text-3xl font-black text-white">{stat.val}</p>
+                <span className="text-[11px] font-bold text-slate-500 uppercase">{stat.label}</span>
+                <p className="text-3xl font-black text-slate-900">{stat.val}</p>
               </div>
               <div className={cn("p-3 rounded-xl border", stat.style)}>
                 <stat.icon size={22} />
@@ -118,15 +118,15 @@ export default function ActionItemsPage() {
         </div>
 
         {/* Konten */}
-        <div className="bg-[#130E29]/40 rounded-2xl p-6 border border-white/5">
+        <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 animate-in fade-in-0 slide-in-from-bottom-3 duration-300 delay-150">
           <div className="flex flex-col md:flex-row gap-4 justify-between mb-6">
-            <div className="flex bg-[#0A051B] p-1 rounded-xl border border-white/5">
+            <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200">
               {(["Semua", "Aktif", "Selesai"] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setActiveFilter(f)}
                   className={cn("px-6 py-2 rounded-lg text-xs font-bold transition",
-                    activeFilter === f ? "bg-[#7E61F2] text-white" : "text-slate-400 hover:text-white"
+                    activeFilter === f ? "bg-blue-700 text-white" : "text-slate-500 hover:text-slate-900"
                   )}
                 >
                   {f}
@@ -134,9 +134,9 @@ export default function ActionItemsPage() {
               ))}
             </div>
             <div className="relative w-full md:w-80">
-              <Search className="absolute left-3.5 top-3 text-slate-500" size={16} />
+              <Search className="absolute left-3.5 top-3 text-slate-400" size={16} />
               <input
-                className="w-full bg-[#0A051B] border border-white/10 rounded-xl py-2.5 pl-10 pr-4 outline-none text-sm text-slate-200 focus:border-purple-500/40 transition"
+                className="w-full bg-white border border-slate-300 rounded-xl py-2.5 pl-10 pr-4 outline-none text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
                 placeholder="Cari tugas..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -147,7 +147,7 @@ export default function ActionItemsPage() {
           <div className="space-y-3">
             {isLoading ? (
               [...Array(3)].map((_, i) => (
-                <div key={i} className="h-16 rounded-xl bg-white/5 animate-pulse" />
+                <div key={i} className="h-16 rounded-xl bg-slate-100 animate-pulse" />
               ))
             ) : isError ? (
               <p className="text-center text-rose-400 py-10 text-sm">Gagal memuat tugas. Pastikan backend sudah berjalan.</p>
@@ -157,30 +157,30 @@ export default function ActionItemsPage() {
                   key={item.id}
                   onClick={() => handleToggleComplete(item.id)}
                   className={cn(
-                    "border border-white/5 p-4 rounded-xl flex items-start gap-4 cursor-pointer transition bg-white/[0.01]",
-                    item.status === "Selesai" ? "bg-black/20 opacity-50" : "hover:bg-white/5 hover:border-white/10"
+                    "border border-slate-200 p-4 rounded-xl flex items-start gap-4 cursor-pointer transition",
+                    item.status === "Selesai" ? "bg-slate-50 opacity-50" : "hover:bg-slate-50 hover:border-slate-300"
                   )}
                 >
                   {item.status === "Selesai" ? (
                     <CheckCircle2 className="text-emerald-400 mt-0.5 shrink-0" size={20} />
                   ) : (
-                    <Square className={cn("mt-0.5 shrink-0", item.status === "Terlambat" ? "text-rose-400/40" : "text-purple-400/40")} size={20} />
+                    <Square className={cn("mt-0.5 shrink-0", item.status === "Terlambat" ? "text-rose-400/40" : "text-blue-600/40")} size={20} />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className={cn("text-sm font-semibold text-slate-200 truncate", item.status === "Selesai" && "line-through text-slate-500")}>
+                    <p className={cn("text-sm font-semibold text-slate-900 truncate", item.status === "Selesai" && "line-through text-slate-500")}>
                       {item.task}
                     </p>
-                    <div className="flex flex-wrap gap-3 mt-2 text-[11px] text-slate-400 items-center">
+                    <div className="flex flex-wrap gap-3 mt-2 text-[11px] text-slate-500 items-center">
                       <span className="flex items-center gap-1"><Users size={12} /> {item.assignee}</span>
                       <span className="flex items-center gap-1"><Clock size={12} /> {formatDateDisplay(item.dueDate)}</span>
-                      <span className="flex items-center gap-1 bg-purple-500/10 px-2 py-0.5 rounded text-purple-300 font-medium">
+                      <span className="flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded text-blue-600 font-medium">
                         <Video size={11} /> {item.meetingTitle}
                       </span>
                       <span className={cn(
                         "px-2 py-0.5 rounded font-bold border text-[10px]",
-                        item.status === "Terlambat" && "bg-rose-500/10 text-rose-400 border-rose-500/20",
-                        item.status === "Aktif" && "bg-blue-500/10 text-blue-400 border-blue-500/20",
-                        item.status === "Selesai" && "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        item.status === "Terlambat" && "bg-rose-50 text-rose-600 border-rose-200",
+                        item.status === "Aktif" && "bg-blue-50 text-blue-700 border-blue-200",
+                        item.status === "Selesai" && "bg-emerald-50 text-emerald-700 border-emerald-200"
                       )}>
                         {item.status}
                       </span>

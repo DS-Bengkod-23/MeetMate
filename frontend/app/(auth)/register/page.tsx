@@ -23,7 +23,7 @@ export default function RegisterPage() {
   const [isFlying, setIsFlying] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: "Belum Diisi", color: "bg-slate-700" });
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: "Belum Diisi", color: "bg-slate-200" });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -32,7 +32,7 @@ export default function RegisterPage() {
   useEffect(() => {
     const pass = formData.password;
     if (!pass) {
-      setPasswordStrength({ score: 0, label: "Belum Diisi", color: "bg-slate-700" });
+      setPasswordStrength({ score: 0, label: "Belum Diisi", color: "bg-slate-200" });
       return;
     }
     let score = 0;
@@ -50,8 +50,8 @@ export default function RegisterPage() {
     e.preventDefault();
     setFormError(null);
 
-    if (passwordStrength.score === 1) {
-      setFormError("Password terlalu lemah! Gunakan minimal 8 karakter dengan angka atau huruf besar.");
+    if (formData.password.length < 8) {
+      setFormError("Password minimal 8 karakter.");
       return;
     }
     if (formData.password !== formData.confirmPassword) {
@@ -77,12 +77,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#070412] text-white font-sans overflow-hidden relative items-center justify-center">
-
-      {/* BACKGROUND GRAPHICS: Pendaran abstrak mewah (Glow Orbs) */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#7E61F2]/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute top-[30%] right-[20%] w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[90px] pointer-events-none" />
+    <div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans overflow-hidden relative items-center justify-center">
 
       {/* MAIN CONTAINER */}
       <div className="w-full max-w-6xl mx-auto px-6 grid lg:grid-cols-12 gap-12 items-center relative z-10">
@@ -90,34 +85,34 @@ export default function RegisterPage() {
         {/* TATA LETAK KIRI: Branding & Copywriting */}
         <div className="hidden lg:flex lg:col-span-5 flex-col space-y-8 text-left">
           <div className="flex items-center gap-3">
-            <div className="h-6 w-6 rounded-lg bg-gradient-to-tr from-[#1D008C] to-[#7E61F2] shadow-[0_0_20px_rgba(126,97,242,0.5)] flex items-center justify-center">
+            <div className="h-6 w-6 rounded-lg bg-gradient-to-tr from-blue-800 to-blue-600 flex items-center justify-center">
               <div className="h-2 w-2 rounded-full bg-white animate-ping" />
             </div>
-            <span className="font-bold text-base tracking-widest bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">MEETMATE</span>
+            <span className="font-bold text-base tracking-widest text-slate-900">MEETMATE</span>
           </div>
 
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/20 bg-purple-500/5 text-xs text-[#AD99FF] font-medium">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-slate-200 bg-blue-50 text-xs text-blue-600 font-medium">
               <Sparkles size={12} /> Powered by Advanced AI Insights
             </div>
-            <h1 className="text-4xl xl:text-5xl font-black tracking-tight leading-[1.15] text-white">
+            <h1 className="text-4xl xl:text-5xl font-black tracking-tight leading-[1.15] text-slate-900">
               Mulai Sesi Rapat <br />
-              <span className="bg-gradient-to-r from-[#AD99FF] via-[#7E61F2] to-indigo-400 bg-clip-text text-transparent">
+              <span className="text-blue-700">
                 Pintar Anda.
               </span>
             </h1>
-            <p className="text-sm text-slate-400 leading-relaxed max-w-sm">
+            <p className="text-sm text-slate-500 leading-relaxed max-w-sm">
               Gabung sekarang dan nikmati pencatatan berbasis AI otomatis, pembuatan poin tugas instan, dan kolaborasi cerdas.
             </p>
           </div>
 
           <div className="pt-4">
-            <div className="w-full max-w-[280px] p-4 rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm shadow-inner flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-[#7E61F2]/10 text-[#7E61F2]">
+            <div className="w-full max-w-[280px] p-4 rounded-2xl border border-slate-200 bg-white shadow-lg flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-blue-50 text-blue-700">
                 <ShieldCheck size={24} />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-200">Keamanan Terjamin</h4>
+                <h4 className="text-xs font-bold text-slate-900">Keamanan Terjamin</h4>
                 <p className="text-[11px] text-slate-500 mt-0.5">Enkripsi end-to-end data rapat</p>
               </div>
             </div>
@@ -125,26 +120,24 @@ export default function RegisterPage() {
           <div className="text-[11px] text-slate-500">&copy; {new Date().getFullYear()} MeetMate. All rights reserved.</div>
         </div>
 
-        {/* TATA LETAK KANAN: Form Boks Kaca Futuristik */}
+        {/* TATA LETAK KANAN: Form Boks */}
         <div className="w-full lg:col-span-7 flex justify-center lg:justify-end">
           <div
-            className={`w-full max-w-lg bg-[#0F0A24]/40 backdrop-blur-2xl rounded-[32px] shadow-[0_30px_100px_rgba(0,0,0,0.8)] border border-white/[0.06] p-8 md:p-10
+            className={`w-full max-w-lg bg-white rounded-[32px] shadow-lg border border-slate-200 p-8 md:p-10
               transition-all duration-1000 ease-in-out transform relative overflow-hidden
               ${isFlying ? "opacity-0 -translate-y-[100vh] scale-75 rotate-6 blur-md" : "opacity-100 translate-y-0 scale-100"}`}
           >
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-purple-500/40 to-transparent" />
-
             <div className="mb-8">
-              <h2 className="text-2xl font-extrabold tracking-wide text-white">Daftar Akun Baru</h2>
-              <p className="text-xs text-slate-400 mt-2 font-medium">Lengkapi data akun MeetMate Anda</p>
+              <h2 className="text-2xl font-extrabold tracking-wide text-slate-900">Daftar Akun Baru</h2>
+              <p className="text-xs text-slate-500 mt-2 font-medium">Lengkapi data akun MeetMate Anda</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* FIELD NAMA */}
               <div className="space-y-2">
-                <label className="block text-[11px] font-bold text-purple-300/60 uppercase tracking-widest">Nama Lengkap</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nama Lengkap</label>
                 <div className="relative">
-                  <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
                     name="name"
@@ -152,7 +145,7 @@ export default function RegisterPage() {
                     placeholder="John Doe"
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-white/5 bg-white/[0.03] text-sm text-white focus:border-[#7E61F2] focus:bg-[#070412]/80 focus:outline-none focus:ring-1 focus:ring-[#7E61F2]/30 transition-all placeholder-slate-600"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all placeholder-slate-400"
                     required
                   />
                 </div>
@@ -160,9 +153,9 @@ export default function RegisterPage() {
 
               {/* FIELD EMAIL */}
               <div className="space-y-2">
-                <label className="block text-[11px] font-bold text-purple-300/60 uppercase tracking-widest">Email Address</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest">Email Address</label>
                 <div className="relative">
-                  <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="email"
                     name="email"
@@ -170,7 +163,7 @@ export default function RegisterPage() {
                     placeholder="name@example.com"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-white/5 bg-white/[0.03] text-sm text-white focus:border-[#7E61F2] focus:bg-[#070412]/80 focus:outline-none focus:ring-1 focus:ring-[#7E61F2]/30 transition-all placeholder-slate-600"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all placeholder-slate-400"
                     required
                   />
                 </div>
@@ -178,9 +171,9 @@ export default function RegisterPage() {
 
               {/* FIELD PASSWORD */}
               <div className="space-y-2">
-                <label className="block text-[11px] font-bold text-purple-300/60 uppercase tracking-widest">Password</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest">Password</label>
                 <div className="relative">
-                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type={showPassword ? "text" : "password"}
                     name="password"
@@ -188,13 +181,13 @@ export default function RegisterPage() {
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full pl-11 pr-10 py-3 rounded-xl border border-white/5 bg-white/[0.03] text-sm text-white focus:border-[#7E61F2] focus:bg-[#070412]/80 focus:outline-none focus:ring-1 focus:ring-[#7E61F2]/30 transition-all placeholder-slate-600"
+                    className="w-full pl-11 pr-10 py-3 rounded-xl border border-slate-300 bg-white text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all placeholder-slate-400"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -204,11 +197,11 @@ export default function RegisterPage() {
                   <div className="pt-1 space-y-1.5 px-0.5">
                     <div className="flex justify-between items-center text-[10px] font-bold">
                       <span className="text-slate-500">Kekuatan Sandi:</span>
-                      <span className={passwordStrength.score === 1 ? "text-rose-400" : passwordStrength.score === 2 ? "text-amber-400" : "text-emerald-400"}>
+                      <span className={passwordStrength.score === 1 ? "text-rose-600" : passwordStrength.score === 2 ? "text-amber-700" : "text-emerald-700"}>
                         {passwordStrength.label}
                       </span>
                     </div>
-                    <div className="h-[3px] w-full bg-slate-900 rounded-full overflow-hidden">
+                    <div className="h-[3px] w-full bg-slate-200 rounded-full overflow-hidden">
                       <div className={`h-full ${passwordStrength.color} transition-all duration-500`} style={{ width: passwordStrength.score === 1 ? "33%" : passwordStrength.score === 2 ? "66%" : "100%" }} />
                     </div>
                   </div>
@@ -217,9 +210,9 @@ export default function RegisterPage() {
 
               {/* FIELD KONFIRMASI PASSWORD */}
               <div className="space-y-2">
-                <label className="block text-[11px] font-bold text-purple-300/60 uppercase tracking-widest">Konfirmasi Password</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest">Konfirmasi Password</label>
                 <div className="relative">
-                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     name="confirmPassword"
@@ -227,16 +220,16 @@ export default function RegisterPage() {
                     placeholder="••••••••"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className={`w-full pl-11 pr-10 py-3 rounded-xl border bg-white/[0.03] text-sm text-white focus:bg-[#070412]/80 focus:outline-none focus:ring-1 transition-all placeholder-slate-600 ${formData.confirmPassword && formData.password !== formData.confirmPassword
+                    className={`w-full pl-11 pr-10 py-3 rounded-xl border bg-white text-sm text-slate-900 focus:outline-none focus:ring-1 transition-all placeholder-slate-400 ${formData.confirmPassword && formData.password !== formData.confirmPassword
                       ? "border-rose-500/40 focus:border-rose-500 focus:ring-rose-500/20"
-                      : "border-white/5 focus:border-[#7E61F2] focus:ring-[#7E61F2]/30"
+                      : "border-slate-300 focus:border-blue-500 focus:ring-blue-500/20"
                       }`}
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors"
                   >
                     {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -251,16 +244,16 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 mt-4 rounded-xl bg-gradient-to-r from-[#5A39E3] to-[#7E61F2] hover:opacity-90 text-white font-bold text-sm transition-all shadow-xl shadow-[#7E61F2]/20 active:scale-[0.99] disabled:opacity-50"
+                className="w-full py-3 mt-4 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-sm transition-all active:scale-[0.99] disabled:opacity-50"
               >
                 {isLoading ? "Mendaftarkan..." : "Daftar Akun Baru"}
               </button>
             </form>
 
             <div className="text-center mt-6">
-              <p className="text-xs text-slate-400 font-medium">
+              <p className="text-xs text-slate-500 font-medium">
                 Sudah memiliki akun?{" "}
-                <Link href="/login" className="font-bold text-[#AD99FF] hover:underline ml-0.5">
+                <Link href="/login" className="font-bold text-blue-600 hover:text-blue-700 hover:underline ml-0.5">
                   Masuk di sini
                 </Link>
               </p>

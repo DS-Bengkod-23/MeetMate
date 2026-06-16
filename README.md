@@ -234,24 +234,13 @@ meetmate/
 ├── ml/                # ML pipeline (Whisper, pyannote, Ollama)
 ├── docs/              # Documentation
 │   ├── PRD.md
-│   ├── ARCHITECTURE_BACKEND.md
 │   ├── API_CONTRACT.md
-│   └── ML_INTERFACE.md
+│   ├── ML_INTERFACE.md
+│   ├── DOCKER_WORKFLOW.md
+│   └── DOCKER_CHANGES.md
 ├── docker-compose.yml
 ├── .env.example
 └── README.md
-```
-
----
-
-## Sample Data
-
-A sample audio file and expected output are provided for testing:
-
-```
-samples/
-├── sample_meeting.mp3     # 10-minute sample meeting audio (ID + EN)
-└── expected_output.json   # Expected summary + action items
 ```
 
 ---

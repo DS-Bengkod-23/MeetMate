@@ -32,9 +32,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={cn("font-sans", inter.variable)}>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#070412]`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>
-          <Toaster theme="dark" position="top-center" richColors closeButton />
+          <Toaster theme="light" position="top-center" richColors closeButton />
           {children}
         </Providers>
       </body>

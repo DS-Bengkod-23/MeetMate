@@ -152,7 +152,7 @@ from ml.extract import extract_summary, extract_action_items
 - `components/ui/` — shadcn auto-generated, do not edit manually
 - `lib/api.ts` — central fetch/axios wrapper for all API calls
 - `types/index.ts` — TypeScript types derived from API contract
-- `hooks/useProcessingStatus.ts` — polls recording status endpoint
+- `hooks/useRecording.ts` — upload recording + polling processing status
 
 ---
 
