@@ -16,8 +16,13 @@ var/
 sdist/
 develop-eggs/
 .installed.cfg
-lib/
-lib64/
+# Python venv lib dirs (not frontend/lib)
+/lib/
+/lib64/
+backend/lib/
+backend/lib64/
+ml/lib/
+ml/lib64/
 .venv/
 venv/
 env/
@@ -126,3 +131,8 @@ coverage.xml
 *.tmp
 *.temp
 .DS_Store
+
+# ================================
+# Internal / Local Only
+# ================================
+review-pr/
