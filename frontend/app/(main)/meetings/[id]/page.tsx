@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, UserCircle, Calendar, MapPin, Trash2 } from "lucide-react";
+import { ArrowLeft, UserCircle, Calendar, MapPin, Trash2, Download } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { cn, isDateOverdue } from "@/lib/utils";
@@ -29,6 +29,7 @@ import AttendanceTable from "@/components/meetings/AttendanceTable";
 import { useMeeting, useUpdateAttendance, useDeleteMeeting } from "@/hooks/useMeeting";
 import { useUploadRecording, useRecordingStatus, useDeleteRecording } from "@/hooks/useRecording";
 import { useUpdateActionItem, useCreateActionItem } from "@/hooks/useActionItems";
+import { downloadNotulenPdf } from "@/lib/api";
 
 function formatDate(isoString: string) {
   return new Date(isoString).toLocaleDateString("id-ID", {
@@ -42,6 +43,7 @@ export default function MeetingDetailPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"ringkasan" | "transkrip">("ringkasan");
   const [pollingEnabled, setPollingEnabled] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   const { data: meeting, isLoading, isError } = useMeeting(id);
   const { data: recordingStatus } = useRecordingStatus(id, pollingEnabled);
@@ -121,6 +123,17 @@ export default function MeetingDetailPage() {
 
   const handleAssignTask = (taskId: string | number, assigneeId: string) => {
     updateActionItem({ id: String(taskId), assigneeId: assigneeId || null });
+  };
+
+  const handleDownloadPdf = async () => {
+    setIsDownloadingPdf(true);
+    try {
+      await downloadNotulenPdf(id, meeting?.title ?? id);
+    } catch {
+      toast.error("Gagal mengunduh notulen PDF.");
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   const handleCreateActionItem = async (data: { task: string; assigneeParticipantId: string | null; dueDate: string | null }) => {
@@ -354,18 +367,31 @@ export default function MeetingDetailPage() {
 
             {/* Tab Ringkasan / Transkrip */}
             <section className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
-              <div className="flex p-1 bg-slate-100 border-b border-slate-200">
-                {(["ringkasan", "transkrip"] as const).map((tab) => (
+              <div className="flex items-center gap-2 p-1 bg-slate-100 border-b border-slate-200">
+                <div className="flex flex-1">
+                  {(["ringkasan", "transkrip"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={cn("flex-1 py-2.5 text-xs font-bold rounded-xl transition capitalize",
+                        activeTab === tab ? "bg-blue-700 text-white" : "text-slate-500 hover:text-slate-700"
+                      )}
+                    >
+                      {tab === "ringkasan" ? "Ringkasan AI" : "Transkrip Audio"}
+                    </button>
+                  ))}
+                </div>
+                {processingStatus === "completed" && (
                   <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={cn("flex-1 py-2.5 text-xs font-bold rounded-xl transition capitalize",
-                      activeTab === tab ? "bg-blue-700 text-white" : "text-slate-500 hover:text-slate-700"
-                    )}
+                    onClick={handleDownloadPdf}
+                    disabled={isDownloadingPdf}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-blue-700 hover:border-blue-300 text-xs font-semibold transition disabled:opacity-50 shrink-0"
+                    title="Download Notulen PDF"
                   >
-                    {tab === "ringkasan" ? "Ringkasan AI" : "Transkrip Audio"}
+                    <Download size={13} />
+                    {isDownloadingPdf ? "Mengunduh..." : "PDF"}
                   </button>
-                ))}
+                )}
               </div>
               <div className="p-6 min-h-[320px]">
                 {meeting.summary || meeting.transcript ? (
