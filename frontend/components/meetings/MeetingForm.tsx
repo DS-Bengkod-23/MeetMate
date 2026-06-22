@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Plus, Type, MapPin, Calendar, FileText } from "lucide-react";
+import { X, Plus, Type, MapPin, Calendar, FileText, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useCreateMeeting } from "@/hooks/useMeetings";
 import { FormError } from "@/components/ui/form-error";
@@ -18,6 +18,8 @@ export default function MeetingForm() {
     dateTime: "",
     description: "",
     agenda: "",
+    durationHours: 1,
+    durationMins: 0,
   });
   const [emailInput, setEmailInput] = useState("");
   const [participants, setParticipants] = useState<string[]>([]);
@@ -44,6 +46,12 @@ export default function MeetingForm() {
     e.preventDefault();
     setFormError(null);
 
+    const totalMinutes = formData.durationHours * 60 + formData.durationMins;
+    if (totalMinutes === 0) {
+      setFormError("Durasi rapat tidak boleh 0 menit.");
+      return;
+    }
+
     try {
       const result = await createMeeting({
         title: formData.title,
@@ -52,6 +60,7 @@ export default function MeetingForm() {
         description: formData.description,
         agenda_text: formData.agenda,
         participant_emails: participants,
+        duration_minutes: totalMinutes,
       });
       toast.success("Rapat berhasil dijadwalkan!");
       router.push(`/meetings/${result.id}`);
@@ -99,7 +108,7 @@ export default function MeetingForm() {
             />
           </div>
 
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2">
             <label className="text-xs font-semibold text-slate-700 flex items-center gap-2">
               <Calendar size={14} className="text-slate-500" /> Jadwal & Waktu Pelaksanaan <span className="text-blue-600">*</span>
             </label>
@@ -109,6 +118,32 @@ export default function MeetingForm() {
               className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all [color-scheme:light]"
               onChange={(e) => setFormData({ ...formData, dateTime: e.target.value })}
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-700 flex items-center gap-2">
+              <Clock size={14} className="text-slate-500" /> Durasi Rapat <span className="text-blue-600">*</span>
+            </label>
+            <div className="flex gap-2">
+              <select
+                value={formData.durationHours}
+                onChange={(e) => setFormData({ ...formData, durationHours: Number(e.target.value) })}
+                className="flex-1 px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+              >
+                {[0, 1, 2, 3, 4].map((h) => (
+                  <option key={h} value={h}>{h} jam</option>
+                ))}
+              </select>
+              <select
+                value={formData.durationMins}
+                onChange={(e) => setFormData({ ...formData, durationMins: Number(e.target.value) })}
+                className="flex-1 px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+              >
+                {[0, 15, 30, 45].map((m) => (
+                  <option key={m} value={m}>{m} menit</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, UserCircle, Calendar, MapPin, Trash2 } from "lucide-react";
+import { ArrowLeft, UserCircle, Calendar, MapPin, Trash2, Download } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { cn, isDateOverdue } from "@/lib/utils";
@@ -24,11 +24,12 @@ import ActionItemList from "@/components/notulen/ActionItemList";
 import SummaryCard from "@/components/notulen/SummaryCard";
 import TranscriptView from "@/components/notulen/TranscriptView";
 import AttendanceTable from "@/components/meetings/AttendanceTable";
-import ParticipantList from "@/components/meetings/ParticipantList";
+
 
 import { useMeeting, useUpdateAttendance, useDeleteMeeting } from "@/hooks/useMeeting";
 import { useUploadRecording, useRecordingStatus, useDeleteRecording } from "@/hooks/useRecording";
-import { useUpdateActionItem } from "@/hooks/useActionItems";
+import { useUpdateActionItem, useCreateActionItem } from "@/hooks/useActionItems";
+import { downloadNotulenPdf } from "@/lib/api";
 
 function formatDate(isoString: string) {
   return new Date(isoString).toLocaleDateString("id-ID", {
@@ -42,6 +43,7 @@ export default function MeetingDetailPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"ringkasan" | "transkrip">("ringkasan");
   const [pollingEnabled, setPollingEnabled] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   const { data: meeting, isLoading, isError } = useMeeting(id);
   const { data: recordingStatus } = useRecordingStatus(id, pollingEnabled);
@@ -53,8 +55,16 @@ export default function MeetingDetailPage() {
   useEffect(() => {
     setRecordingFileName(localStorage.getItem(recordingFilenameKey));
   }, [recordingFilenameKey]);
+
+  // Auto-enable polling saat refresh jika ML masih memproses
+  useEffect(() => {
+    if (["queued", "transcribing", "diarizing", "extracting", "sending_email"].includes(meeting?.processing_status)) {
+      setPollingEnabled(true);
+    }
+  }, [meeting?.processing_status]);
   const { mutate: updateAttendance } = useUpdateAttendance(id);
   const { mutate: updateActionItem } = useUpdateActionItem(id);
+  const { mutateAsync: createActionItem } = useCreateActionItem(id);
   const { mutateAsync: deleteMeeting, isPending: isDeletingMeeting } = useDeleteMeeting();
 
   // Deteksi apakah user adalah organizer
@@ -115,6 +125,26 @@ export default function MeetingDetailPage() {
     updateActionItem({ id: String(taskId), assigneeId: assigneeId || null });
   };
 
+  const handleDownloadPdf = async () => {
+    setIsDownloadingPdf(true);
+    try {
+      await downloadNotulenPdf(id, meeting?.title ?? id);
+    } catch {
+      toast.error("Gagal mengunduh notulen PDF.");
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
+  const handleCreateActionItem = async (data: { task: string; assigneeParticipantId: string | null; dueDate: string | null }) => {
+    try {
+      await createActionItem({ task: data.task, assignee_participant_id: data.assigneeParticipantId, due_date: data.dueDate });
+      toast.success("Action item berhasil ditambahkan.");
+    } catch {
+      toast.error("Gagal menambahkan action item.");
+    }
+  };
+
   // Map participants ke format AttendanceTable
   const attendanceData = (meeting?.participants ?? []).map((p: any) => {
     const rawStatus = p.attendance_status ?? "pending";
@@ -130,13 +160,13 @@ export default function MeetingDetailPage() {
     };
   });
 
-  // Lookup name peserta berdasarkan participant id (untuk display nama assignee dan pre-select dropdown)
-  const participantNameById: Record<string, string> = Object.fromEntries(
-    (meeting?.participants ?? []).map((p: any) => [
-      String(p.id),
-      p.name || p.email?.split("@")[0] || "Tanpa Nama",
-    ])
-  );
+  const getActionItemPriority = (dueDate?: string | null): "Tinggi" | "Sedang" | "Rendah" => {
+    if (!dueDate) return "Rendah";
+    const diffDays = Math.ceil((new Date(dueDate).getTime() - Date.now()) / 86400000);
+    if (diffDays < 0) return "Tinggi";
+    if (diffDays <= 3) return "Sedang";
+    return "Rendah";
+  };
 
   // Map action items ke format ActionItemList
   const actionItems = (meeting?.action_items ?? []).map((item: any) => {
@@ -147,11 +177,11 @@ export default function MeetingDetailPage() {
     return {
       id: item.id,
       task: item.task,
-      assignee: participantNameById[item.assignee_participant_id] || "Belum di-assign",
-      assigneeId: item.assignee_participant_id ?? null,
-      dueDate: item.due_date || "2099-12-31",
+      assignee: item.assignee?.name || "Belum di-assign",
+      assigneeId: item.assignee?.id ?? null,
+      dueDate: item.due_date ?? undefined,
       status,
-      priority: "Sedang" as const,
+      priority: getActionItemPriority(item.due_date),
     };
   });
 
@@ -323,11 +353,6 @@ export default function MeetingDetailPage() {
               )}
             </section>
 
-            {/* Peserta */}
-            <section className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
-              <ParticipantList emails={(meeting.participants ?? []).map((p: any) => p.email)} />
-            </section>
-
             {/* Kehadiran */}
             <section className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
               <AttendanceTable
@@ -342,18 +367,31 @@ export default function MeetingDetailPage() {
 
             {/* Tab Ringkasan / Transkrip */}
             <section className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
-              <div className="flex p-1 bg-slate-100 border-b border-slate-200">
-                {(["ringkasan", "transkrip"] as const).map((tab) => (
+              <div className="flex items-center gap-2 p-1 bg-slate-100 border-b border-slate-200">
+                <div className="flex flex-1">
+                  {(["ringkasan", "transkrip"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={cn("flex-1 py-2.5 text-xs font-bold rounded-xl transition capitalize",
+                        activeTab === tab ? "bg-blue-700 text-white" : "text-slate-500 hover:text-slate-700"
+                      )}
+                    >
+                      {tab === "ringkasan" ? "Ringkasan AI" : "Transkrip Audio"}
+                    </button>
+                  ))}
+                </div>
+                {processingStatus === "completed" && (
                   <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={cn("flex-1 py-2.5 text-xs font-bold rounded-xl transition capitalize",
-                      activeTab === tab ? "bg-blue-700 text-white" : "text-slate-500 hover:text-slate-700"
-                    )}
+                    onClick={handleDownloadPdf}
+                    disabled={isDownloadingPdf}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-blue-700 hover:border-blue-300 text-xs font-semibold transition disabled:opacity-50 shrink-0"
+                    title="Download Notulen PDF"
                   >
-                    {tab === "ringkasan" ? "Ringkasan AI" : "Transkrip Audio"}
+                    <Download size={13} />
+                    {isDownloadingPdf ? "Mengunduh..." : "PDF"}
                   </button>
-                ))}
+                )}
               </div>
               <div className="p-6 min-h-[320px]">
                 {meeting.summary || meeting.transcript ? (
@@ -393,6 +431,7 @@ export default function MeetingDetailPage() {
                 onToggle={handleToggleTask}
                 participants={participantOptions}
                 onAssign={isOrganizer ? handleAssignTask : undefined}
+                onAdd={isOrganizer ? handleCreateActionItem : undefined}
               />
             </section>
 

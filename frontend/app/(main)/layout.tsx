@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Video, CheckSquare, User, LogOut } from "lucide-react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { logoutUser } from "@/lib/api";
 
 export default function MainDashboardLayout({
     children,
@@ -12,7 +13,6 @@ export default function MainDashboardLayout({
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const router = useRouter();
     const pathname = usePathname();
     const isActive = (href: string) => pathname.startsWith(href);
 
@@ -55,36 +55,36 @@ export default function MainDashboardLayout({
 
     return (
         <div className="w-full min-h-screen flex flex-col bg-slate-50 overflow-x-hidden">
-            <header className="w-full border-b border-slate-200 bg-white sticky top-0 z-50">
+            <header className="w-full border-b border-slate-100 bg-white/95 backdrop-blur-md sticky top-0 z-50 shadow-sm shadow-slate-100/80">
                 <div className="max-w-7xl mx-auto px-6 h-16 grid grid-cols-3 items-center">
 
                     {/* Logo */}
                     <div className="flex items-center justify-start gap-2.5">
-                        <div className="h-7 w-7 rounded-lg bg-blue-800 flex items-center justify-center">
+                        <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-500/25">
                             <Video size={14} className="text-white" />
                         </div>
                         <span className="font-bold text-lg tracking-wide text-slate-900">MeetMate</span>
                     </div>
 
                     {/* Navigasi */}
-                    <nav className="hidden md:flex items-center justify-center gap-2 text-sm font-medium">
+                    <nav className="hidden md:flex items-center justify-center gap-1 text-sm font-medium">
                         <Link
                             href="/meetings"
                             className={isActive("/meetings")
-                                ? "bg-blue-50 text-blue-700 font-semibold flex items-center gap-2 px-3 py-1.5 rounded-lg"
-                                : "text-slate-500 hover:text-blue-700 hover:bg-slate-50 flex items-center gap-2 px-3 py-1.5 rounded-lg transition"
+                                ? "bg-indigo-50 text-indigo-700 font-semibold flex items-center gap-2 px-4 py-2 rounded-xl"
+                                : "text-slate-500 hover:text-slate-800 hover:bg-slate-50 flex items-center gap-2 px-4 py-2 rounded-xl transition"
                             }
                         >
-                            <Video size={16} /> Rapat
+                            <Video size={15} /> Rapat
                         </Link>
                         <Link
                             href="/action-items"
                             className={isActive("/action-items")
-                                ? "bg-blue-50 text-blue-700 font-semibold flex items-center gap-2 px-3 py-1.5 rounded-lg"
-                                : "text-slate-500 hover:text-blue-700 hover:bg-slate-50 flex items-center gap-2 px-3 py-1.5 rounded-lg transition"
+                                ? "bg-indigo-50 text-indigo-700 font-semibold flex items-center gap-2 px-4 py-2 rounded-xl"
+                                : "text-slate-500 hover:text-slate-800 hover:bg-slate-50 flex items-center gap-2 px-4 py-2 rounded-xl transition"
                             }
                         >
-                            <CheckSquare size={16} /> Tugas Saya
+                            <CheckSquare size={15} /> Tugas Saya
                         </Link>
                     </nav>
 
@@ -92,16 +92,16 @@ export default function MainDashboardLayout({
                     <div className="flex items-center justify-end relative" ref={dropdownRef}>
                         <button
                             onClick={() => setIsOpen(!isOpen)}
-                            className="flex items-center gap-2.5 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-full hover:border-blue-300 transition-all cursor-pointer"
+                            className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 hover:border-indigo-300 px-3 py-1.5 rounded-full transition-all cursor-pointer"
                         >
-                            <div className="h-6 w-6 rounded-full bg-blue-800 text-[10px] font-bold flex items-center justify-center text-white">
+                            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-[10px] font-bold flex items-center justify-center text-white shadow-sm">
                                 {getInitials(profileName)}
                             </div>
                             <span className="text-xs font-semibold text-slate-700 hidden sm:inline">{profileName}</span>
                         </button>
 
                         {isOpen && (
-                            <div className="absolute top-full right-0 mt-2 w-44 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+                            <div className="absolute top-full right-0 mt-2 w-44 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-200/60 overflow-hidden animate-in fade-in zoom-in duration-150">
                                 <Link
                                     href="/profile"
                                     onClick={() => setIsOpen(false)}
@@ -109,8 +109,9 @@ export default function MainDashboardLayout({
                                 >
                                     <User size={14} /> Personal Info
                                 </Link>
+                                <div className="mx-3 border-t border-slate-100" />
                                 <button
-                                    onClick={() => router.push('/login')}
+                                    onClick={() => logoutUser()}
                                     className="flex items-center gap-3 px-4 py-3 text-xs text-rose-500 hover:bg-rose-50 w-full transition"
                                 >
                                     <LogOut size={14} /> Log Out
