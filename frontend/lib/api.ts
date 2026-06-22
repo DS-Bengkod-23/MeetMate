@@ -161,6 +161,12 @@ export const confirmCheckin = async (token: string) => {
   return response.data;
 };
 
+export const updateCheckinActionItem = (
+  token: string,
+  actionItemId: string,
+  status: "open" | "done"
+) => api.patch(`/check-in/${token}/action-items/${actionItemId}`, { status }).then((r) => r.data);
+
 export const downloadNotulenPdf = async (meetingId: string, meetingTitle: string) => {
   const response = await api.get(`/meetings/${meetingId}/notulen.pdf`, {
     responseType: "blob",

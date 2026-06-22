@@ -12,8 +12,9 @@ import {
   ListChecks,
   Loader2,
   Lock,
+  Download,
 } from "lucide-react";
-import { getCheckin, confirmCheckin } from "@/lib/api";
+import { getCheckin, confirmCheckin, updateCheckinActionItem, downloadNotulenPdf } from "@/lib/api";
 
 interface CheckInPageProps {
   params: { token: string };
@@ -23,7 +24,7 @@ interface ActionItem {
   id: string;
   task: string;
   due_date?: string | null;
-  status: string;
+  status: "open" | "done";
 }
 
 interface Summary {
@@ -33,6 +34,7 @@ interface Summary {
 }
 
 interface MeetingInfo {
+  meeting_id: string;
   meeting_title: string;
   scheduled_at: string;
   location: string;
@@ -61,11 +63,22 @@ export default function CheckInPage({ params }: CheckInPageProps) {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
+  // Local action items state for optimistic toggle
+  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
+  // Track which item ids are being toggled
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+
+  // PDF download state
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+
   useEffect(() => {
     getCheckin(params.token)
       .then((data) => {
         setMeetingInfo(data);
         if (data.already_checked_in) setCheckedIn(true);
+        if (data.action_items) {
+          setActionItems(data.action_items);
+        }
       })
       .catch(() => setTokenError(true))
       .finally(() => setInitialLoading(false));
@@ -83,11 +96,56 @@ export default function CheckInPage({ params }: CheckInPageProps) {
     }
   };
 
+  const handleToggleActionItem = async (item: ActionItem) => {
+    if (togglingIds.has(item.id)) return;
+    const newStatus = item.status === "done" ? "open" : "done";
+
+    // Optimistic update
+    setActionItems((prev) =>
+      prev.map((a) => (a.id === item.id ? { ...a, status: newStatus } : a))
+    );
+    setTogglingIds((prev) => new Set(prev).add(item.id));
+
+    try {
+      await updateCheckinActionItem(params.token, item.id, newStatus);
+    } catch {
+      // Revert on error
+      setActionItems((prev) =>
+        prev.map((a) => (a.id === item.id ? { ...a, status: item.status } : a))
+      );
+    } finally {
+      setTogglingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!meetingInfo) return;
+    setPdfDownloading(true);
+    try {
+      await downloadNotulenPdf(meetingInfo.meeting_id, meetingInfo.meeting_title);
+    } catch {
+      // silently fail — user can retry
+    } finally {
+      setPdfDownloading(false);
+    }
+  };
+
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("id-ID", {
-      weekday: "long", day: "numeric", month: "long", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
+
+  const notulenReady =
+    meetingInfo?.processing_status === "done" || meetingInfo?.processing_status === "completed";
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col">
@@ -188,9 +246,27 @@ export default function CheckInPage({ params }: CheckInPageProps) {
 
             {/* KARTU 2: NOTULEN */}
             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-              <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100 pb-3 mb-4 flex items-center gap-2">
-                <FileText size={14} /> Notulen
-              </h2>
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                  <FileText size={14} /> Notulen
+                </h2>
+                {/* PDF Download button — hanya tampil jika notulen sudah selesai */}
+                {notulenReady && meetingInfo.summary && (
+                  <button
+                    id="btn-download-pdf"
+                    onClick={handleDownloadPdf}
+                    disabled={pdfDownloading}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 px-3 py-1.5 rounded-lg transition"
+                  >
+                    {pdfDownloading ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Download size={12} />
+                    )}
+                    {pdfDownloading ? "Mengunduh..." : "Download PDF"}
+                  </button>
+                )}
+              </div>
 
               {!meetingInfo.processing_status ? (
                 <p className="text-sm text-slate-400">Rekaman rapat belum diupload.</p>
@@ -241,28 +317,79 @@ export default function CheckInPage({ params }: CheckInPageProps) {
                 <ListChecks size={14} /> Action Items Saya
               </h2>
 
-              {!meetingInfo.action_items || meetingInfo.action_items.length === 0 ? (
+              {actionItems.length === 0 ? (
                 <p className="text-sm text-slate-400">Tidak ada action item untuk Anda di rapat ini.</p>
               ) : (
                 <ul className="space-y-3">
-                  {meetingInfo.action_items.map((item) => (
-                    <li key={item.id} className="flex items-start gap-3">
-                      <span className={`mt-0.5 shrink-0 h-4 w-4 rounded-full border-2 ${item.status === "done" ? "bg-emerald-500 border-emerald-500" : "border-slate-300"}`} />
-                      <div className="flex-1">
-                        <p className={`text-sm ${item.status === "done" ? "line-through text-slate-400" : "text-slate-700"}`}>
-                          {item.task}
-                        </p>
-                        {item.due_date && (
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            Tenggat: {new Date(item.due_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                  {actionItems.map((item) => {
+                    const isDone = item.status === "done";
+                    const isToggling = togglingIds.has(item.id);
+                    return (
+                      <li key={item.id} className="flex items-start gap-3">
+                        {/* Toggle circle button */}
+                        <button
+                          id={`toggle-action-${item.id}`}
+                          onClick={() => handleToggleActionItem(item)}
+                          disabled={isToggling}
+                          title={isDone ? "Tandai sebagai Open" : "Tandai sebagai Selesai"}
+                          className={`
+                            mt-0.5 shrink-0 h-5 w-5 rounded-full border-2 flex items-center justify-center
+                            transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1
+                            ${isToggling ? "opacity-50 cursor-wait" : "cursor-pointer"}
+                            ${isDone
+                              ? "bg-emerald-500 border-emerald-500 text-white focus:ring-emerald-400"
+                              : "border-slate-300 hover:border-emerald-400 focus:ring-emerald-400"
+                            }
+                          `}
+                        >
+                          {isToggling ? (
+                            <Loader2 size={10} className="animate-spin" />
+                          ) : isDone ? (
+                            <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                              <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          ) : null}
+                        </button>
+
+                        {/* Task text */}
+                        <div className="flex-1 min-w-0">
+                          <p
+                            className={`text-sm leading-snug transition-all duration-200 ${
+                              isDone ? "line-through text-slate-400" : "text-slate-700"
+                            }`}
+                          >
+                            {item.task}
                           </p>
-                        )}
-                      </div>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${item.status === "done" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
-                        {item.status === "done" ? "Selesai" : "Open"}
-                      </span>
-                    </li>
-                  ))}
+                          {item.due_date && (
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              Tenggat:{" "}
+                              {new Date(item.due_date).toLocaleDateString("id-ID", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              })}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Status badge — clickable shortcut */}
+                        <button
+                          onClick={() => handleToggleActionItem(item)}
+                          disabled={isToggling}
+                          className={`
+                            text-xs font-medium px-2 py-0.5 rounded-full shrink-0 transition-all duration-200
+                            ${isToggling ? "opacity-50 cursor-wait" : "cursor-pointer hover:opacity-80"}
+                            ${isDone
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600"
+                            }
+                          `}
+                        >
+                          {isDone ? "Selesai" : "Open"}
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>
