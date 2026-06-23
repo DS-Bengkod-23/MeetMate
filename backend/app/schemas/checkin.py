@@ -18,6 +18,7 @@ class CheckinActionItem(BaseModel):
 
 
 class CheckinPageResponse(BaseModel):
+    meeting_id: uuid.UUID
     meeting_title: str
     scheduled_at: datetime
     location: str | None = None

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 import uuid
 
@@ -14,6 +15,8 @@ from app.schemas.checkin import (
     ActionItemStatusUpdate,
 )
 from app.services import checkin as checkin_service
+from app.services.checkin import _get_participant_from_token
+from app.services.pdf import generate_notulen_pdf
 
 router = APIRouter(tags=["checkin"])
 
@@ -36,6 +39,29 @@ def update_action_item_via_token(
     db: Session = Depends(get_db),
 ):
     return checkin_service.update_action_item_via_token(db, token, action_item_id, data.status)
+
+
+@router.get("/check-in/{token}/notulen.pdf")
+def download_notulen_pdf_via_token(token: str, db: Session = Depends(get_db)):
+    _, _, meeting = _get_participant_from_token(db, token)
+
+    if meeting.summary is None:
+        raise HTTPException(status_code=404, detail="Notulen belum tersedia")
+
+    organizer_name = meeting.organizer.name if meeting.organizer else "Organizer"
+    pdf_bytes = generate_notulen_pdf(
+        meeting=meeting,
+        organizer_name=organizer_name,
+        participants=meeting.participants,
+        summary=meeting.summary,
+        action_items=meeting.action_items or [],
+    )
+    safe_title = "".join(c if c.isalnum() or c in " _-" else "_" for c in meeting.title)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="notulen-{safe_title}.pdf"'},
+    )
 
 
 @router.patch(

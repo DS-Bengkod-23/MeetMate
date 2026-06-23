@@ -90,6 +90,7 @@ def get_checkin_info(db: Session, token: str) -> CheckinPageResponse:
     ]
 
     return CheckinPageResponse(
+        meeting_id=meeting.id,
         meeting_title=meeting.title,
         scheduled_at=meeting.scheduled_at,
         location=meeting.location,
