@@ -14,7 +14,7 @@ import {
   Lock,
   Download,
 } from "lucide-react";
-import { getCheckin, confirmCheckin, updateCheckinActionItem, downloadNotulenPdf } from "@/lib/api";
+import { getCheckin, confirmCheckin, updateCheckinActionItem } from "@/lib/api";
 
 interface CheckInPageProps {
   params: { token: string };
@@ -68,8 +68,6 @@ export default function CheckInPage({ params }: CheckInPageProps) {
   // Track which item ids are being toggled
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
 
-  // PDF download state
-  const [pdfDownloading, setPdfDownloading] = useState(false);
 
   useEffect(() => {
     getCheckin(params.token)
@@ -122,16 +120,9 @@ export default function CheckInPage({ params }: CheckInPageProps) {
     }
   };
 
-  const handleDownloadPdf = async () => {
-    if (!meetingInfo) return;
-    setPdfDownloading(true);
-    try {
-      await downloadNotulenPdf(meetingInfo.meeting_id, meetingInfo.meeting_title);
-    } catch {
-      // silently fail — user can retry
-    } finally {
-      setPdfDownloading(false);
-    }
+  const handleDownloadPdf = () => {
+    const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+    window.open(`${base}/check-in/${params.token}/notulen.pdf`, "_blank");
   };
 
   const formatDate = (iso: string) =>
@@ -255,15 +246,10 @@ export default function CheckInPage({ params }: CheckInPageProps) {
                   <button
                     id="btn-download-pdf"
                     onClick={handleDownloadPdf}
-                    disabled={pdfDownloading}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 px-3 py-1.5 rounded-lg transition"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition"
                   >
-                    {pdfDownloading ? (
-                      <Loader2 size={12} className="animate-spin" />
-                    ) : (
-                      <Download size={12} />
-                    )}
-                    {pdfDownloading ? "Mengunduh..." : "Download PDF"}
+                    <Download size={12} />
+                    Download PDF
                   </button>
                 )}
               </div>
