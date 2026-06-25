@@ -12,6 +12,7 @@ class MeetingCreate(BaseModel):
     description: Optional[str] = None
     agenda_text: Optional[str] = None
     participant_emails: List[str]
+    duration_minutes: int = 60
 
 
 class MeetingUpdate(BaseModel):
@@ -20,6 +21,7 @@ class MeetingUpdate(BaseModel):
     location: Optional[str] = None
     description: Optional[str] = None
     agenda_text: Optional[str] = None
+    duration_minutes: Optional[int] = None
 
 
 class ParticipantResponse(BaseModel):
@@ -115,6 +117,7 @@ class MeetingDetail(BaseModel):
     description: Optional[str] = None
     agenda_text: Optional[str] = None
     status: str
+    duration_minutes: int
     organizer: OrganizerResponse
     participants: List[ParticipantResponse]
     recording: Optional[RecordingResponse] = None
@@ -152,6 +155,15 @@ class MeetingDetail(BaseModel):
                 "id": str(ai.id),
                 "task": ai.task,
                 "assignee_participant_id": str(ai.assignee_participant_id) if ai.assignee_participant_id else None,
+                "assignee": (
+                    {
+                        "id": str(ai.assignee_participant.user.id),
+                        "name": ai.assignee_participant.user.name,
+                        "email": ai.assignee_participant.user.email,
+                    }
+                    if ai.assignee_participant and ai.assignee_participant.user
+                    else None
+                ),
                 "due_date": ai.due_date.isoformat() if ai.due_date else None,
                 "status": ai.status.value if hasattr(ai.status, "value") else ai.status,
             }
@@ -166,6 +178,7 @@ class MeetingDetail(BaseModel):
             "description": data.description,
             "agenda_text": data.agenda_text,
             "status": status,
+            "duration_minutes": data.duration_minutes,
             "organizer": data.organizer,
             "participants": data.participants,
             "recording": data.recording,

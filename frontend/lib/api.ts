@@ -88,6 +88,7 @@ export const createMeeting = async (data: {
   description?: string;
   agenda_text?: string;
   participant_emails: string[];
+  duration_minutes?: number;
 }) => {
   const response = await api.post("/meetings", data);
   return response.data;
@@ -102,6 +103,7 @@ export const updateMeeting = async (
     description?: string;
     agenda_text?: string;
     participant_emails?: string[];
+    duration_minutes?: number;
   }
 ) => {
   const response = await api.patch(`/meetings/${id}`, data);
@@ -159,6 +161,24 @@ export const confirmCheckin = async (token: string) => {
   return response.data;
 };
 
+export const updateCheckinActionItem = (
+  token: string,
+  actionItemId: string,
+  status: "open" | "done"
+) => api.patch(`/check-in/${token}/action-items/${actionItemId}`, { status }).then((r) => r.data);
+
+export const downloadNotulenPdf = async (meetingId: string, meetingTitle: string) => {
+  const response = await api.get(`/meetings/${meetingId}/notulen.pdf`, {
+    responseType: "blob",
+  });
+  const url = URL.createObjectURL(response.data);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `notulen-${meetingTitle}.pdf`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 // ==========================================
 // ATTENDANCE
 // ==========================================
@@ -188,9 +208,17 @@ export const getMyActionItems = async (status?: "open" | "done") => {
 
 export const updateActionItem = async (
   id: string,
-  payload: { status?: "open" | "done"; assignee_id?: string | null }
+  payload: { status?: "open" | "done"; assignee_participant_id?: string | null }
 ) => {
   const response = await api.patch(`/action-items/${id}`, payload);
+  return response.data;
+};
+
+export const createActionItem = async (
+  meetingId: string,
+  data: { task: string; assignee_participant_id?: string | null; due_date?: string | null }
+) => {
+  const response = await api.post(`/meetings/${meetingId}/action-items`, data);
   return response.data;
 };
 

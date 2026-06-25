@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Type, MapPin, Calendar, FileText, X, Plus } from "lucide-react";
+import { ArrowLeft, Type, MapPin, Calendar, FileText, X, Plus, Clock } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useMeeting, useUpdateMeeting } from "@/hooks/useMeeting";
@@ -21,6 +21,8 @@ export default function EditMeetingPage() {
     dateTime: "",
     description: "",
     agenda: "",
+    durationHours: 1,
+    durationMins: 0,
   });
   const [participants, setParticipants] = useState<string[]>([]);
   const [emailInput, setEmailInput] = useState("");
@@ -37,6 +39,8 @@ export default function EditMeetingPage() {
       dateTime: localDateTime,
       description: meeting.description ?? "",
       agenda: meeting.agenda_text ?? "",
+      durationHours: Math.floor((meeting.duration_minutes ?? 60) / 60),
+      durationMins: (meeting.duration_minutes ?? 60) % 60,
     });
     const existingEmails = (meeting.participants ?? []).map((p: any) => p.email);
     setParticipants(existingEmails);
@@ -64,6 +68,13 @@ export default function EditMeetingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    const totalMinutes = formData.durationHours * 60 + formData.durationMins;
+    if (totalMinutes === 0) {
+      setFormError("Durasi rapat tidak boleh 0 menit.");
+      return;
+    }
+
     try {
       await updateMeeting({
         title: formData.title,
@@ -72,6 +83,7 @@ export default function EditMeetingPage() {
         description: formData.description,
         agenda_text: formData.agenda,
         participant_emails: participants,
+        duration_minutes: totalMinutes,
       });
       toast.success("Rapat berhasil diperbarui!");
       router.push(`/meetings/${id}`);
@@ -93,7 +105,7 @@ export default function EditMeetingPage() {
       <div className="w-full min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
         <p className="text-rose-400 text-sm">Rapat tidak ditemukan atau terjadi kesalahan.</p>
         <Link href="/meetings" className="text-blue-600 text-xs hover:underline">
-          ← Kembali ke Dashboard
+        Kembali ke Dashboard
         </Link>
       </div>
     );
@@ -150,7 +162,7 @@ export default function EditMeetingPage() {
                 />
               </div>
 
-              <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2">
                 <label className="text-xs font-semibold text-slate-500 flex items-center gap-2">
                   <Calendar size={14} className="text-slate-500" /> Jadwal & Waktu Pelaksanaan <span className="text-blue-600">*</span>
                 </label>
@@ -161,6 +173,32 @@ export default function EditMeetingPage() {
                   onChange={(e) => setFormData({ ...formData, dateTime: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all [color-scheme:light]"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-500 flex items-center gap-2">
+                  <Clock size={14} className="text-slate-500" /> Durasi Rapat <span className="text-blue-600">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={formData.durationHours}
+                    onChange={(e) => setFormData({ ...formData, durationHours: Number(e.target.value) })}
+                    className="flex-1 px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                  >
+                    {[0, 1, 2, 3, 4].map((h) => (
+                      <option key={h} value={h}>{h} jam</option>
+                    ))}
+                  </select>
+                  <select
+                    value={formData.durationMins}
+                    onChange={(e) => setFormData({ ...formData, durationMins: Number(e.target.value) })}
+                    className="flex-1 px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                  >
+                    {[0, 15, 30, 45].map((m) => (
+                      <option key={m} value={m}>{m} menit</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>

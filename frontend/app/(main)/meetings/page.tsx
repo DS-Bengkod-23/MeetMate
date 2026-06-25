@@ -89,42 +89,39 @@ export default function MeetingsDashboard() {
   const loading = isLoading || isSearching;
 
   return (
-    <div className="w-full min-h-screen bg-slate-50 text-slate-900 font-sans relative overflow-hidden pb-12">
-      <main className="relative z-10 max-w-7xl mx-auto px-6 pt-10 space-y-10">
-        {/* HEADER SECTION */}
-        <div className="space-y-2 animate-in fade-in-0 slide-in-from-bottom-3 duration-300">
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-            Selamat datang, {userName}!
-          </h1>
-          <p className="text-sm text-slate-500">Kelola dan tinjau riwayat rapat pintar Anda dengan mudah.</p>
+    <div className="w-full min-h-screen bg-slate-50 text-slate-900 font-sans pb-16">
+      <main className="max-w-7xl mx-auto px-6 pt-8 space-y-8">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Halo, {userName}! 👋</h1>
+          <p className="text-slate-500 text-sm mt-1">Kelola dan tinjau rapat pintar kamu dari sini.</p>
         </div>
 
         {/* UTILITY BAR */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white border border-slate-200 shadow-sm rounded-2xl p-4 animate-in fade-in-0 slide-in-from-bottom-3 duration-300 delay-75">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Cari rapat berdasarkan nama atau lokasi..."
+              placeholder="Cari rapat..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all shadow-sm"
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-300 text-sm font-semibold text-slate-700 hover:text-slate-900 hover:border-slate-400 transition-all outline-none">
-                <Filter size={16} className="text-blue-600" />
+              <DropdownMenuTrigger className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm font-medium text-slate-600 hover:border-slate-300 transition-all outline-none shadow-sm">
+                <Filter size={14} className="text-indigo-500" />
                 <span>{statusFilter}</span>
-                <ChevronDown size={14} className="opacity-60" />
+                <ChevronDown size={13} className="opacity-50" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-white border border-slate-200 text-slate-700 rounded-xl shadow-md p-1 min-w-[160px]">
+              <DropdownMenuContent align="end" className="bg-white border border-slate-200 text-slate-700 rounded-xl shadow-lg p-1 min-w-[160px]">
                 {["Semua Status", "Dijadwalkan", "Selesai", "Dibatalkan"].map((status) => (
                   <DropdownMenuItem
                     key={status}
                     onClick={() => setStatusFilter(status)}
-                    className="rounded-lg px-3 py-2 text-sm focus:bg-blue-700 focus:text-white cursor-pointer transition-colors"
+                    className="rounded-lg px-3 py-2 text-sm focus:bg-indigo-600 focus:text-white cursor-pointer transition-colors"
                   >
                     {status}
                   </DropdownMenuItem>
@@ -134,44 +131,42 @@ export default function MeetingsDashboard() {
 
             <Link
               href="/meetings/new"
-              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-sm font-bold text-white shadow-sm transition-all duration-300"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-sm font-semibold text-white shadow-md shadow-indigo-500/25 transition-all duration-300"
             >
-              <Plus size={16} />
-              <span>Buat Meeting Baru</span>
+              <Plus size={15} />
+              Buat Rapat
             </Link>
           </div>
         </div>
 
         {/* LIST CARDS */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-48 rounded-2xl bg-slate-200 animate-pulse" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-44 rounded-2xl bg-slate-200/70 animate-pulse" />
             ))}
           </div>
         ) : isError ? (
-          <div className="text-center py-20 bg-white border border-dashed border-red-200 rounded-2xl shadow-sm">
+          <div className="text-center py-20 bg-white border border-dashed border-rose-200 rounded-2xl">
             <p className="text-rose-400 text-sm">Gagal memuat data rapat. Pastikan backend sudah berjalan.</p>
           </div>
         ) : meetings.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in-0 slide-in-from-bottom-3 duration-300 delay-150">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in-0 duration-300">
               {meetings.map((meeting: any) => (
                 <MeetingCard key={meeting.id} {...meeting} />
               ))}
             </div>
 
-            {/* PAGINATION — hanya tampil kalau tidak sedang search dan ada lebih dari 1 halaman */}
             {!debouncedQuery && totalPages > 1 && (
-              <div className="flex items-center justify-center gap-3 pt-4">
+              <div className="flex items-center justify-center gap-2 pt-2">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                  className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition shadow-sm"
                 >
-                  <ChevronLeft size={16} />
+                  <ChevronLeft size={15} />
                 </button>
-
                 <div className="flex items-center gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                     <button
@@ -179,7 +174,7 @@ export default function MeetingsDashboard() {
                       onClick={() => setPage(p)}
                       className={`w-8 h-8 rounded-lg text-xs font-bold transition ${
                         p === page
-                          ? "bg-blue-700 text-white"
+                          ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
                           : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
                       }`}
                     >
@@ -187,26 +182,34 @@ export default function MeetingsDashboard() {
                     </button>
                   ))}
                 </div>
-
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                  className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition shadow-sm"
                 >
-                  <ChevronRight size={16} />
+                  <ChevronRight size={15} />
                 </button>
-
-                <span className="text-xs text-slate-500 ml-2">
-                  {total} rapat total
-                </span>
+                <span className="text-xs text-slate-400 ml-1">{total} rapat</span>
               </div>
             )}
           </>
         ) : (
-          <div className="text-center py-20 bg-white border border-dashed border-slate-200 rounded-2xl shadow-sm">
-            <p className="text-slate-500 text-sm">
-              {debouncedQuery ? "Tidak ada hasil pencarian." : "Belum ada rapat. Buat rapat baru!"}
+          <div className="text-center py-24 bg-white border border-dashed border-slate-200 rounded-2xl">
+            <div className="text-4xl mb-4">📋</div>
+            <p className="text-slate-700 font-semibold mb-1">
+              {debouncedQuery ? "Rapat tidak ditemukan" : "Belum ada rapat"}
             </p>
+            <p className="text-slate-400 text-sm mb-6">
+              {debouncedQuery ? `Tidak ada hasil untuk "${debouncedQuery}"` : "Buat rapat pertama kamu dan mulai catat notulen otomatis."}
+            </p>
+            {!debouncedQuery && (
+              <Link
+                href="/meetings/new"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition"
+              >
+                <Plus size={15} /> Buat Rapat Pertama
+              </Link>
+            )}
           </div>
         )}
       </main>
