@@ -1,5 +1,5 @@
 import os
-import whisper
+from faster_whisper import WhisperModel
 try:
     from .schemas import TranscriptResult, TranscriptSegment
 except ImportError:
@@ -16,23 +16,24 @@ def transcribe(audio_path: str, model_size: str = "large-v3") -> TranscriptResul
 
     try:
         model_size = os.getenv("WHISPER_MODEL", model_size)
-        model = whisper.load_model(model_size)
-        result = model.transcribe(audio_path, word_timestamps=False)
+        model = WhisperModel(model_size, device="cpu", compute_type="int8")
+        result, info = model.transcribe(audio_path, beam_size=5)
+        raw_segments = list(result)
     except Exception as e:
         raise RuntimeError(f"Whisper gagal memproses audio: {e}") from e
 
     segments = [
         TranscriptSegment(
             speaker="SPEAKER_00",
-            start=seg["start"],
-            end=seg["end"],
-            text=seg["text"].strip(),
+            start=seg.start,
+            end=seg.end,
+            text=seg.text.strip(),
         )
-        for seg in result["segments"]
+        for seg in raw_segments
     ]
 
     duration = segments[-1].end if segments else 0.0
-    language = result.get("language") or "id"
+    language = info.language or "id"
 
     return TranscriptResult(
         segments=segments,
