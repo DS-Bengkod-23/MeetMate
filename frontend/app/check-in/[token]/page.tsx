@@ -14,7 +14,7 @@ import {
   Lock,
   Download,
 } from "lucide-react";
-import { getCheckin, confirmCheckin, updateCheckinActionItem, downloadNotulenPdf } from "@/lib/api";
+import { getCheckin, confirmCheckin, updateCheckinActionItem, downloadCheckinNotulenPdf } from "@/lib/api";
 
 interface CheckInPageProps {
   params: { token: string };
@@ -126,7 +126,7 @@ export default function CheckInPage({ params }: CheckInPageProps) {
     if (!meetingInfo) return;
     setPdfDownloading(true);
     try {
-      await downloadNotulenPdf(meetingInfo.meeting_id, meetingInfo.meeting_title);
+      await downloadCheckinNotulenPdf(params.token, meetingInfo.meeting_title);
     } catch {
       // silently fail — user can retry
     } finally {
