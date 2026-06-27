@@ -62,14 +62,13 @@ export default function CheckInPage({ params }: CheckInPageProps) {
   const [checkedIn, setCheckedIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   // Local action items state for optimistic toggle
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   // Track which item ids are being toggled
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
 
-  // PDF download state
-  const [pdfDownloading, setPdfDownloading] = useState(false);
 
   useEffect(() => {
     getCheckin(params.token)

@@ -1,53 +1,37 @@
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from app.models.invitation import Invitation
 from app.models.meeting import Meeting
-from app.models.participant import MeetingParticipant
+from app.models.participant import MeetingParticipant, ParticipantRole
 from app.models.attendance import Attendance, AttendanceStatus, AttendanceMethod
-from app.models.recording import Recording
-from app.models.summary import Summary
 from app.models.action_item import ActionItem, ActionItemStatus
 from app.schemas.checkin import (
     CheckinPageResponse,
     CheckinConfirmResponse,
-    CheckinSummary,
-    CheckinActionItem,
     AttendanceUpdateResponse,
 )
 
 
-def _is_attendance_locked(meeting: Meeting) -> bool:
-    if meeting.attendance_locked_at:
-        return datetime.now(timezone.utc) > meeting.attendance_locked_at
-    grace = timedelta(minutes=30)
-    scheduled_end = meeting.scheduled_at + timedelta(minutes=meeting.duration_minutes)
-    return datetime.now(timezone.utc) > scheduled_end + grace
-
-
-def _get_participant_from_token(db: Session, token: str) -> tuple[Invitation, MeetingParticipant, Meeting]:
+def _resolve_token(db: Session, token: str):
     invitation = db.query(Invitation).filter(Invitation.token == token).first()
     if not invitation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Token tidak valid atau tidak ditemukan")
-
-    participant = db.query(MeetingParticipant).filter(
-        MeetingParticipant.id == invitation.participant_id
-    ).first()
+    if invitation.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Token sudah expired")
+    participant = db.query(MeetingParticipant).filter(MeetingParticipant.id == invitation.participant_id).first()
     if not participant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Participant tidak ditemukan")
-
     meeting = db.query(Meeting).filter(Meeting.id == participant.meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meeting tidak ditemukan")
-
     return invitation, participant, meeting
 
 
 def get_checkin_info(db: Session, token: str) -> CheckinPageResponse:
-    # Token tidak perlu cek expires_at — portal ini permanen untuk viewing
-    invitation, participant, meeting = _get_participant_from_token(db, token)
+    invitation, participant, meeting = _resolve_token(db, token)
 
     name = participant.user.name if participant.user else participant.email.split('@')[0]
 
@@ -57,36 +41,24 @@ def get_checkin_info(db: Session, token: str) -> CheckinPageResponse:
     elif participant.attendance and participant.attendance.status == AttendanceStatus.hadir:
         already_checked_in = True
 
-    attendance_locked = _is_attendance_locked(meeting)
+    processing_status = None
+    if meeting.recording:
+        ps = meeting.recording.processing_status
+        processing_status = ps.value if hasattr(ps, 'value') else ps
 
-    # Query recording status
-    recording = db.query(Recording).filter(Recording.meeting_id == meeting.id).first()
-    processing_status = recording.processing_status.value if recording else None
+    summary = None
+    if meeting.summary:
+        s = meeting.summary
+        summary = {"tldr": s.tldr, "decisions": s.decisions, "topics": s.topics}
 
-    # Query summary (hanya kalau ML sudah selesai)
-    checkin_summary = None
-    summary = db.query(Summary).filter(Summary.meeting_id == meeting.id).first()
-    if summary:
-        checkin_summary = CheckinSummary(
-            tldr=summary.tldr,
-            decisions=summary.decisions or [],
-            topics=summary.topics or [],
-        )
-
-    # Query action items milik participant ini
-    action_items = db.query(ActionItem).filter(
-        ActionItem.meeting_id == meeting.id,
-        ActionItem.assignee_participant_id == participant.id,
-    ).all()
-
-    checkin_action_items = [
-        CheckinActionItem(
-            id=ai.id,
-            task=ai.task,
-            due_date=ai.due_date,
-            status=ai.status.value,
-        )
-        for ai in action_items
+    action_items = [
+        {
+            "id": str(ai.id),
+            "task": ai.task,
+            "due_date": ai.due_date.isoformat() if ai.due_date else None,
+            "status": ai.status.value if hasattr(ai.status, 'value') else ai.status,
+        }
+        for ai in meeting.action_items
     ]
 
     return CheckinPageResponse(
@@ -96,19 +68,19 @@ def get_checkin_info(db: Session, token: str) -> CheckinPageResponse:
         location=meeting.location,
         participant_name=name,
         already_checked_in=already_checked_in,
-        attendance_locked=attendance_locked,
+        attendance_locked=meeting.attendance_locked,
         processing_status=processing_status,
-        summary=checkin_summary,
-        action_items=checkin_action_items,
+        summary=summary,
+        action_items=action_items,
     )
 
 
 def confirm_checkin(db: Session, token: str) -> CheckinConfirmResponse:
-    invitation, participant, meeting = _get_participant_from_token(db, token)
+    invitation, participant, meeting = _resolve_token(db, token)
 
     name = participant.user.name if participant.user else participant.email.split('@')[0]
 
-    if _is_attendance_locked(meeting):
+    if meeting.attendance_locked:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Absensi sudah ditutup untuk rapat ini",
@@ -146,33 +118,122 @@ def confirm_checkin(db: Session, token: str) -> CheckinConfirmResponse:
     )
 
 
-def update_action_item_via_token(
-    db: Session, token: str, action_item_id: uuid.UUID, new_status: str
-) -> CheckinActionItem:
-    _, participant, _ = _get_participant_from_token(db, token)
+def lock_attendance(db: Session, meeting_id: uuid.UUID, organizer_id: uuid.UUID) -> dict:
+    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+    if not meeting:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meeting tidak ditemukan")
+    if meeting.organizer_id != organizer_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Hanya organizer yang bisa mengunci presensi")
 
-    try:
-        status_enum = ActionItemStatus(new_status)
-    except ValueError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Status tidak valid. Gunakan 'open' atau 'done'")
+    meeting.attendance_locked = True
+
+    peserta = [p for p in meeting.participants if p.role == ParticipantRole.peserta]
+    for p in peserta:
+        if p.attendance:
+            if p.attendance.status == AttendanceStatus.pending:
+                p.attendance.status = AttendanceStatus.tidak_hadir
+        else:
+            db.add(Attendance(
+                participant_id=p.id,
+                status=AttendanceStatus.tidak_hadir,
+                method=AttendanceMethod.manual,
+            ))
+
+    db.commit()
+    return {"attendance_locked": True}
+
+
+def update_checkin_action_item(
+    db: Session, token: str, action_item_id: uuid.UUID, new_status: ActionItemStatus
+) -> dict:
+    _, participant, meeting = _resolve_token(db, token)
 
     action_item = db.query(ActionItem).filter(
         ActionItem.id == action_item_id,
+        ActionItem.meeting_id == meeting.id,
         ActionItem.assignee_participant_id == participant.id,
     ).first()
     if not action_item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Action item tidak ditemukan atau bukan milik Anda")
 
-    action_item.status = status_enum
+    action_item.status = new_status
     db.commit()
-    db.refresh(action_item)
+    return {
+        "id": str(action_item.id),
+        "task": action_item.task,
+        "due_date": action_item.due_date.isoformat() if action_item.due_date else None,
+        "status": action_item.status.value,
+    }
 
-    return CheckinActionItem(
-        id=action_item.id,
-        task=action_item.task,
-        due_date=action_item.due_date,
-        status=action_item.status.value,
-    )
+
+def get_checkin_notulen_pdf(db: Session, token: str) -> bytes:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib import colors
+    import io
+
+    _, participant, meeting = _resolve_token(db, token)
+
+    if not meeting.summary:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notulen belum tersedia")
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
+    styles = getSampleStyleSheet()
+    h1 = styles["h1"]
+    h2 = ParagraphStyle("h2", parent=styles["h2"], spaceAfter=4)
+    body = styles["BodyText"]
+    elems = []
+
+    elems.append(Paragraph("NOTULEN RAPAT", h1))
+    elems.append(Spacer(1, 0.3*cm))
+    elems.append(Paragraph(meeting.title, styles["h2"]))
+    scheduled = meeting.scheduled_at.strftime("%d %B %Y, %H:%M")
+    elems.append(Paragraph(f"Tanggal: {scheduled}", body))
+    if meeting.location:
+        elems.append(Paragraph(f"Lokasi: {meeting.location}", body))
+    elems.append(Spacer(1, 0.5*cm))
+
+    s = meeting.summary
+    elems.append(Paragraph("Ringkasan", h2))
+    elems.append(Paragraph(s.tldr, body))
+    elems.append(Spacer(1, 0.4*cm))
+
+    if s.decisions:
+        elems.append(Paragraph("Keputusan", h2))
+        for d in s.decisions:
+            elems.append(Paragraph(f"• {d}", body))
+        elems.append(Spacer(1, 0.4*cm))
+
+    if s.topics:
+        elems.append(Paragraph("Topik Dibahas", h2))
+        for t in s.topics:
+            elems.append(Paragraph(f"• {t}", body))
+        elems.append(Spacer(1, 0.4*cm))
+
+    if meeting.action_items:
+        elems.append(Paragraph("Action Items", h2))
+        table_data = [["Tugas", "Tenggat", "Status"]]
+        for ai in meeting.action_items:
+            table_data.append([
+                ai.task,
+                ai.due_date.strftime("%d %b %Y") if ai.due_date else "-",
+                ai.status.value if hasattr(ai.status, 'value') else ai.status,
+            ])
+        t = Table(table_data, colWidths=[10*cm, 3*cm, 3*cm])
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+        ]))
+        elems.append(t)
+
+    doc.build(elems)
+    return buf.getvalue()
 
 
 def update_attendance_manual(
