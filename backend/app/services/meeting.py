@@ -123,14 +123,68 @@ def update_meeting(db: Session, meeting_id: uuid.UUID, user_id: uuid.UUID, data:
     meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
-        
+
     if meeting.organizer_id != user_id:
         raise HTTPException(status_code=403, detail="Only organizer can update meeting")
-        
-    update_data = data.model_dump(exclude_unset=True)
+
+    update_data = data.model_dump(exclude_unset=True, exclude={"participant_emails"})
     for key, value in update_data.items():
         setattr(meeting, key, value)
-        
+
+    if data.participant_emails is not None:
+        organizer_user = db.query(User).filter(User.id == user_id).first()
+        organizer_email = organizer_user.email if organizer_user else None
+
+        existing_peserta = {
+            p.email: p
+            for p in meeting.participants
+            if p.role == ParticipantRole.peserta
+        }
+        new_emails = {e for e in data.participant_emails if e != organizer_email}
+
+        for email, participant in existing_peserta.items():
+            if email not in new_emails:
+                db.delete(participant)
+
+        to_add = [e for e in new_emails if e not in existing_peserta]
+        new_participants = []
+        for email in to_add:
+            existing_user = db.query(User).filter(User.email == email).first()
+            p = MeetingParticipant(
+                meeting_id=meeting.id,
+                user_id=existing_user.id if existing_user else None,
+                email=email,
+                role=ParticipantRole.peserta,
+            )
+            db.add(p)
+            new_participants.append((email, p))
+
+        db.flush()
+
+        if new_participants:
+            invitations = create_invitations(
+                db=db,
+                meeting_id=meeting.id,
+                participant_ids=[p.id for _, p in new_participants],
+                expire_hours=settings.CHECKIN_TOKEN_EXPIRE_HOURS,
+            )
+            token_map = {inv.participant_id: inv.token for inv in invitations}
+
+            for _, p in new_participants:
+                try:
+                    send_invitation_email(
+                        recipient_email=p.email,
+                        recipient_name=p.user.name if p.user else p.email,
+                        meeting_title=meeting.title,
+                        scheduled_at=meeting.scheduled_at,
+                        location=meeting.location or "",
+                        checkin_token=token_map[p.id],
+                        meeting_id=meeting.id,
+                        db=db,
+                    )
+                except Exception:
+                    logger.exception("Failed to send invitation email to %s", p.email)
+
     db.commit()
     db.refresh(meeting)
     return meeting
